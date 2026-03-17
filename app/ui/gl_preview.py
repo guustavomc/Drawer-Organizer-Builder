@@ -2,6 +2,7 @@ import math
 import numpy as np
 
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtWidgets import QSizePolicy
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
@@ -20,7 +21,8 @@ class GLPreview(QOpenGLWidget):
         self._rot_z = -45.0
         self._zoom = 1.0
         self._last_pos = None
-        self.setMinimumSize(200, 200)
+        self.setMinimumSize(100, 100)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def refresh(self):
         self._triangles = self.model.build_triangles()
@@ -35,7 +37,7 @@ class GLPreview(QOpenGLWidget):
         glLightfv(GL_LIGHT0, GL_POSITION, [1, 2, 3, 0])
         glLightfv(GL_LIGHT0, GL_DIFFUSE,  [0.9, 0.9, 0.9, 1])
         glLightfv(GL_LIGHT0, GL_AMBIENT,  [0.4, 0.4, 0.4, 1])
-        glClearColor(0.68, 0.68, 0.68, 1)
+        glClearColor(0.106, 0.106, 0.106, 1)
         self._triangles = self.model.build_triangles()
 
     def resizeGL(self, w, h):

@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
 
         # ── Middle: 2D canvas ────────────────
         mid = QVBoxLayout()
-        mid.addWidget(QLabel("Layout View  (Left-click → X divider · Right-click → Y divider · Drag · Del)"))
+        mid.addWidget(QLabel("Layout View  (Left-click: add X divider   Right-click: add Y divider   Drag to move   Del to remove)"))
         self.canvas = LayoutCanvas(self.model)
         self.canvas.modelChanged.connect(self._on_layout_changed)
         self.canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
 
     def _apply_stylesheet(self):
         self.setStyleSheet("""
-            QMainWindow, QWidget { background: #121212; color: #cdd6f4; font-size: 13px; }
+            QMainWindow, QWidget { background: #1b1b1b; color: #cdd6f4; font-size: 13px; }
             QGroupBox { border: 1px solid #45475a; border-radius: 6px;
                         margin-top: 8px; padding: 6px; }
             QGroupBox::title { subcontrol-origin: margin; left: 8px; color: #89b4fa; }
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background: #121212; }
             QPushButton:pressed { background: #121212; color: #1e1e2e; }
             QLabel { color: #cdd6f4; }
-            QStatusBar { background: #121212; color: #6c7086; }
+            QStatusBar { background: #1b1b1b; color: #6c7086; }
         """)
 
     # ── Slots ────────────────────────────────

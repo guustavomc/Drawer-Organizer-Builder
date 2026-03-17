@@ -73,20 +73,20 @@ class LayoutCanvas(QWidget):
         r = self._box_rect()
 
         # background
-        p.fillRect(self.rect(), QColor('#121212'))
+        p.fillRect(self.rect(), QColor('#1b1b1b'))
 
         # box fill
-        p.fillRect(r, QColor("#6A6B88"))
+        p.fillRect(r, QColor("#e6e6e6"))
 
         # wall inset shade
         T = self.model.wall
         tx = int(r.width()  * T / self.model.width)
         ty = int(r.height() * T / self.model.depth)
         inner = r.adjusted(tx, ty, -tx, -ty)
-        p.fillRect(inner, QColor('#45475a'))
+        p.fillRect(inner, QColor('#c0c0c0'))
 
         # dividers
-        pen_div = QPen(QColor("#DEDEDEF4"), 2)
+        pen_div = QPen(QColor("#0f0f0f"), 2)
         p.setPen(pen_div)
         for frac in self.model.x_dividers:
             px = self._frac_to_px(frac, 'x', r)
@@ -119,11 +119,6 @@ class LayoutCanvas(QWidget):
         p.drawText(r.left(), r.bottom() + 14,
                    f"W: {self.model.width:.0f}mm  D: {self.model.depth:.0f}mm")
 
-        # instructions
-        p.setFont(QFont('Arial', 9))
-        p.setPen(QColor('#6c7086'))
-        p.drawText(self.MARGIN, self.height() - 4,
-                   "Left-click: add X divider   Right-click: add Y divider   Drag to move   Del to remove")
 
     # ── mouse interaction ────────────────────
 
