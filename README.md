@@ -38,6 +38,17 @@ cd .\app\
 python main.py
 ```
 
+## Future Features
+
+- **Compartment dimension display** — show width × depth (in mm) inside each cell on the 2D canvas, plus X/Y coordinates for each divider vertex on hover
+- **Snap to grid / equal spacing** — hold Shift while dragging a divider to snap it to evenly-spaced positions
+- **Undo / Redo (Ctrl+Z / Ctrl+Y)** — history stack for divider additions, deletions, and moves
+- **Direct numeric input for divider position** — double-click a divider to type its exact mm position
+- **Minimum compartment size warning** — highlight compartments that are too narrow to print (below `2 × wall thickness`)
+- **Save / Load design (JSON)** — export and reload full designs including dimensions and divider positions
+- **Compartment labels** — type short labels per compartment shown in the 2D canvas and optionally embossed on the STL floor
+- **Divider height override** — set individual dividers shorter than the full box height
+
 ## Project Structure
 
 ```
