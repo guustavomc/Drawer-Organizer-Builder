@@ -134,18 +134,18 @@ class MainWindow(QMainWindow):
 
     def _apply_stylesheet(self):
         self.setStyleSheet("""
-            QMainWindow, QWidget { background: #1e1e2e; color: #cdd6f4; font-size: 13px; }
+            QMainWindow, QWidget { background: #121212; color: #cdd6f4; font-size: 13px; }
             QGroupBox { border: 1px solid #45475a; border-radius: 6px;
                         margin-top: 8px; padding: 6px; }
             QGroupBox::title { subcontrol-origin: margin; left: 8px; color: #89b4fa; }
-            QDoubleSpinBox, QSpinBox { background: #313244; border: 1px solid #45475a;
+            QDoubleSpinBox, QSpinBox { background: #121212; border: 1px solid #45475a;
                                        border-radius: 4px; padding: 2px 4px; color: #cdd6f4; }
-            QPushButton { background: #313244; border: 1px solid #45475a; border-radius: 6px;
+            QPushButton { background: #121212; border: 1px solid #45475a; border-radius: 6px;
                           padding: 6px 12px; color: #cdd6f4; }
-            QPushButton:hover { background: #45475a; }
-            QPushButton:pressed { background: #89b4fa; color: #1e1e2e; }
+            QPushButton:hover { background: #121212; }
+            QPushButton:pressed { background: #121212; color: #1e1e2e; }
             QLabel { color: #cdd6f4; }
-            QStatusBar { background: #181825; color: #6c7086; }
+            QStatusBar { background: #121212; color: #6c7086; }
         """)
 
     # ── Slots ────────────────────────────────

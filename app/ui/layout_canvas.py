@@ -73,7 +73,7 @@ class LayoutCanvas(QWidget):
         r = self._box_rect()
 
         # background
-        p.fillRect(self.rect(), QColor('#1e1e2e'))
+        p.fillRect(self.rect(), QColor('#121212'))
 
         # box fill
         p.fillRect(r, QColor('#313244'))
