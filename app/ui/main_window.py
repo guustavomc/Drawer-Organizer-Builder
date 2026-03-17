@@ -109,14 +109,14 @@ class MainWindow(QMainWindow):
         self.canvas.modelChanged.connect(self._on_layout_changed)
         self.canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         mid.addWidget(self.canvas)
-        root.addLayout(mid, 2)
+        root.addLayout(mid, 1)
 
         # ── Right: 3D preview ────────────────
         right = QVBoxLayout()
         right.addWidget(QLabel("3D Preview  (Drag to rotate · Scroll to zoom)"))
         self.gl = GLPreview(self.model)
         right.addWidget(self.gl)
-        root.addLayout(right, 2)
+        root.addLayout(right, 1)
 
         # Status bar
         self.setStatusBar(QStatusBar())
@@ -140,8 +140,8 @@ class MainWindow(QMainWindow):
             QGroupBox::title { subcontrol-origin: margin; left: 8px; color: #89b4fa; }
             QDoubleSpinBox, QSpinBox { background: #121212; border: 1px solid #45475a;
                                        border-radius: 4px; padding: 2px 4px; color: #cdd6f4; }
-            QPushButton { background: #121212; border: 1px solid #45475a; border-radius: 6px;
-                          padding: 6px 12px; color: #cdd6f4; }
+            QPushButton { background: #121212; border: 1px solid #45475a; border-radius: 5px;
+                          padding: 5px 12px; color: #cdd6f4; }
             QPushButton:hover { background: #121212; }
             QPushButton:pressed { background: #121212; color: #1e1e2e; }
             QLabel { color: #cdd6f4; }

@@ -76,7 +76,7 @@ class LayoutCanvas(QWidget):
         p.fillRect(self.rect(), QColor('#121212'))
 
         # box fill
-        p.fillRect(r, QColor('#313244'))
+        p.fillRect(r, QColor("#6A6B88"))
 
         # wall inset shade
         T = self.model.wall
@@ -86,7 +86,7 @@ class LayoutCanvas(QWidget):
         p.fillRect(inner, QColor('#45475a'))
 
         # dividers
-        pen_div = QPen(QColor('#89b4fa'), 2)
+        pen_div = QPen(QColor("#DEDEDEF4"), 2)
         p.setPen(pen_div)
         for frac in self.model.x_dividers:
             px = self._frac_to_px(frac, 'x', r)
@@ -99,7 +99,7 @@ class LayoutCanvas(QWidget):
         # hover highlight
         if self._hover:
             axis, idx = self._hover
-            pen_h = QPen(QColor('#f38ba8'), 2, Qt.PenStyle.DashLine)
+            pen_h = QPen(QColor("#ce271e"), 2, Qt.PenStyle.DashLine)
             p.setPen(pen_h)
             if axis == 'x':
                 px = self._frac_to_px(self.model.x_dividers[idx], 'x', r)
