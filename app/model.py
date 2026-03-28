@@ -1,4 +1,4 @@
-from geometry import box_triangles, hollow_rounded_box, rounded_box_triangles
+from geometry import box_triangles, hollow_rounded_box
 
 # ─────────────────────────────────────────────
 #  Organizer model

@@ -10,9 +10,16 @@ def box_triangles(x0, y0, z0, x1, y1, z1):
     """Return list of triangles (each = 3×3 array) for a solid box."""
     tris = []
     corners = [
-        (x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
-        (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
+        (x0, y0, z0), 
+        (x1, y0, z0), 
+        (x1, y1, z0), 
+        (x0, y1, z0),
+        (x0, y0, z1), 
+        (x1, y0, z1), 
+        (x1, y1, z1), 
+        (x0, y1, z1),
     ]
+
     faces = [
         (0,1,2,3),  # bottom
         (4,7,6,5),  # top
@@ -27,22 +34,22 @@ def box_triangles(x0, y0, z0, x1, y1, z1):
         tris.append((a, c, d))
     return tris
 
-def rounded_rect_profile(x0, y0, x1, y1, r, segments=8):
+def rounded_rect_profile(x0, y0, x1, y1, radius, segments=8):
     """2D polygon for a rounded rectangle. r = corner radius."""
     pts = []
     
     # Each corner: (center_x, center_y, angle_start, angle_end)
     corners = [
-        (x1 - r, y1 - r,  0.0,          np.pi / 2),   # top-right
-        (x0 + r, y1 - r,  np.pi / 2,    np.pi),        # top-left
-        (x0 + r, y0 + r,  np.pi,        3 * np.pi / 2),# bottom-left
-        (x1 - r, y0 + r,  3 * np.pi / 2, 2 * np.pi),  # bottom-right
+        (x1 - radius, y1 - radius,  0.0,          np.pi / 2),   # top-right
+        (x0 + radius, y1 - radius,  np.pi / 2,    np.pi),        # top-left
+        (x0 + radius, y0 + radius,  np.pi,        3 * np.pi / 2),# bottom-left
+        (x1 - radius, y0 + radius,  3 * np.pi / 2, 2 * np.pi),  # bottom-right
     ]
 
-    for cx, cy, a_start, a_end in corners:
+    for center_x, center_y, angle_start, angle_end in corners:
         for i in range(segments + 1):
-            a = a_start + (a_end - a_start) * i / segments
-            pts.append((cx + r * np.cos(a), cy + r * np.sin(a)))
+            angle = angle_start + (angle_end - angle_start) * i / segments
+            pts.append((center_x + radius * np.cos(angle), center_y + radius * np.sin(angle)))
     return pts
 
 def extrude_profile(pts, z0, z1):
@@ -74,17 +81,6 @@ def cap_triangles(pts, z, flip=False):
         # flip=True for the bottom cap so normals point downward
         triangles.append((center, b, a) if flip else (center, a, b))
     return triangles
-
-def rounded_box_triangles(x0, y0, z0, x1, y1, z1, r, segments=8):
-    """Solid box with rounded vertical edges. r = corner radius."""
-    # Clamp radius so it never exceeds half the shorter side
-    r = min(r, (x1 - x0) / 2, (y1 - y0) / 2)
-    pts = rounded_rect_profile(x0, y0, x1, y1, r, segments)
-    tris = []
-    tris += extrude_profile(pts, z0, z1)   # side walls
-    tris += cap_triangles(pts, z1)          # top cap
-    tris += cap_triangles(pts, z0, flip=True)  # bottom cap
-    return tris
 
 def ring_cap_triangles(outer_points, inner_points, z):
     """Triangulate an annular ring between two profiles at height z."""
