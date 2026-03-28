@@ -86,6 +86,49 @@ def rounded_box_triangles(x0, y0, z0, x1, y1, z1, r, segments=8):
     tris += cap_triangles(pts, z0, flip=True)  # bottom cap
     return tris
 
+def ring_cap_triangles(outer_points, inner_points, z):
+    """Triangulate an annular ring between two profiles at height z."""
+    tris = []
+    n = len(outer_points)
+    for i in range(n):
+        op0 = np.array([outer_points[i][0],        outer_points[i][1],        z])
+        op1 = np.array([outer_points[(i+1)%n][0],  outer_points[(i+1)%n][1],  z])
+        ip0 = np.array([inner_points[i][0],         inner_points[i][1],        z])
+        ip1 = np.array([inner_points[(i+1)%n][0],  inner_points[(i+1)%n][1],  z])
+        if np.flip:
+            tris.append((op0, ip0, ip1))
+            tris.append((op0, ip1, op1))
+        else:
+            tris.append((op0, op1, ip1))
+            tris.append((op0, ip1, ip0))
+    return tris
+
+def hollow_rounded_box(x0, y0, z0, x1, y1, z_top, wall, r, segments=8):
+    """
+    Hollow open-top box with rounded vertical corners.
+    x0/y0/z0: outer origin, x1/y1: outer far corner, z_top: total height.
+    wall: wall/floor thickness. r: outer corner radius.
+    """
+    r_outer = min(r, (x1 - x0) / 2, (y1 - y0) / 2)
+    r_inner = max(r_outer - wall, 0.0)
+    z_floor = z0 + wall
+
+    outer_points = rounded_rect_profile(x0, y0, x1, y1, r_outer, segments)
+    inner_points = rounded_rect_profile(x0 + wall, y0 + wall,
+                                     x1 - wall, y1 - wall, r_inner, segments)
+    tris = []
+    # Outer walls (normals face outward)
+    tris += extrude_profile(outer_points, z0, z_top)
+    # Exterior bottom face
+    tris += cap_triangles(outer_points, z0, flip=True)
+    # Inner walls (reversed → normals face inward)
+    tris += extrude_profile(list(reversed(inner_points)), z_floor, z_top)
+    # Interior floor face (faces up)
+    tris += cap_triangles(inner_points, z_floor)
+    # Top rim (annular ring, faces up)
+    tris += ring_cap_triangles(outer_points, inner_points, z_top)
+    return tris
+
 
 def write_stl(triangles, filepath):
     """Write binary STL from a list of (v0,v1,v2) triangle tuples."""
