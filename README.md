@@ -105,3 +105,29 @@ Also contains the X and Y Dividers, storing them on a float list.
 - For each pair of adjacent points along the outline, it creates a rectangular side face (2 triangles) going from z0 up to z1.
 - Like if we started creating triangles from the 2d points at z0 to the Height of the organizer, creating vertical 2d triangles. 
 
+#### cap_triangles:
+- input the list of points of 2d outline, thickness and flip.
+- It finds the center of the shape and generates triangles, from the center to every edge.
+- The flip parameter controls which way the face points (its normal). *flip=False* → normal points up (used for the interior floor, which you see from inside the box). 
+*flip=True* → normal points down (used for the exterior bottom, which faces the table).
+
+#### ring_cap_triangles:
+- Input the inner points, outer points and the height.
+- fills the very top edge of the wall , the cap on top of the wall.
+- It works by going around the shape point by point. At each step it has 4 points, two from the outer edge and two from the inner edge and makes 2 triangles out of them.
+
+#### hollow_rounded_box:
+- It actually builds the full drawer organizer compartment. It assembles 5 separate surfaces(interior floor, exterior floor, inner walls, outer walls and top rim).
+- Input parameters:
+    - x0, y0, z0 / x1, y1 — outer box position and size
+    - z_top — total height of the box
+    - wall — how thick the walls and floor are
+    - r — corner rounding radius
+    - segments — smoothness of rounded corners
+
+- It creates two rounded rectangle profiles — one for the outside edge, one for the inside edge (offset inward by wall thickness). Then it builds:
+    1. Outer walls — from z0 to z_top along the outer profile
+    2. Exterior bottom — flat face at z0, normals pointing down
+    3. Inner walls — from z_floor (= z0 + wall) to z_top along the inner profile, reversed so normals face inward
+    4. Interior floor — flat face at z_floor, normals pointing up (what you see inside)
+    5. Top rim — the flat ring at z_top connecting the outer and inner edges (the top ledge of the box walls)
