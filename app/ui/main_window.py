@@ -39,21 +39,23 @@ class MainWindow(QMainWindow):
         dim_group = QGroupBox("Box Dimensions (mm)")
         dim_layout = QVBoxLayout(dim_group)
 
-        self.spin_w = self._spin(10, 500, self.model.width,  "Width (X)")
-        self.spin_d = self._spin(10, 500, self.model.depth,  "Depth (Y)")
-        self.spin_h = self._spin(5,  300, self.model.height, "Height (Z)")
-        self.spin_t = self._spin(0.5, 10, self.model.wall,   "Wall thickness")
+        self.spin_w = self._spin(10, 500, self.model.width,         "Width (X)")
+        self.spin_d = self._spin(10, 500, self.model.depth,         "Depth (Y)")
+        self.spin_h = self._spin(5,  300, self.model.height,        "Height (Z)")
+        self.spin_t = self._spin(0.5, 10, self.model.wall,          "Wall thickness")
+        self.spin_r = self._spin(0,   20, self.model.corner_radius, "Corner radius")
 
         for label, spin in [("Width (X):", self.spin_w),
                              ("Depth (Y):", self.spin_d),
                              ("Height (Z):", self.spin_h),
-                             ("Wall (mm):", self.spin_t)]:
+                             ("Wall (mm):", self.spin_t),
+                             ("Corner R (mm):", self.spin_r)]:
             row = QHBoxLayout()
             row.addWidget(QLabel(label))
             row.addWidget(spin)
             dim_layout.addLayout(row)
 
-        for spin in [self.spin_w, self.spin_d, self.spin_h, self.spin_t]:
+        for spin in [self.spin_w, self.spin_d, self.spin_h, self.spin_t, self.spin_r]:
             spin.valueChanged.connect(self._on_dim_changed)
 
         left.addWidget(dim_group)
@@ -151,10 +153,11 @@ class MainWindow(QMainWindow):
     # ── Slots ────────────────────────────────
 
     def _on_dim_changed(self):
-        self.model.width  = self.spin_w.value()
-        self.model.depth  = self.spin_d.value()
-        self.model.height = self.spin_h.value()
-        self.model.wall   = self.spin_t.value()
+        self.model.width         = self.spin_w.value()
+        self.model.depth         = self.spin_d.value()
+        self.model.height        = self.spin_h.value()
+        self.model.wall          = self.spin_t.value()
+        self.model.corner_radius = self.spin_r.value()
         self.canvas.update()
         self.gl.refresh()
         self._update_info()
