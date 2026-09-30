@@ -5,9 +5,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from geometry import write_stl
-from model import OrganizerModel
-from ui.gl_preview import GLPreview
-from ui.layout_canvas import LayoutCanvas
+from src.drawer_organizer.desktop.model import OrganizerModel
+from src.drawer_organizer.desktop.gl_preview import GLPreview
+from src.drawer_organizer.desktop.layout_canvas import LayoutCanvas
 
 # ─────────────────────────────────────────────
 #  Main Window

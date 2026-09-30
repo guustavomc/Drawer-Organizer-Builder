@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QSizePolicy
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from model import OrganizerModel
+from src.drawer_organizer.desktop.model import OrganizerModel
 
 # ─────────────────────────────────────────────
 #  3-D OpenGL preview
