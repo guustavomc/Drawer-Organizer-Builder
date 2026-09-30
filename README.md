@@ -1,133 +1,169 @@
 # Drawer-Organizer-Builder
 
-## Overview
+> Parametric drawer organizer generator: a Python package that turns dimensions and divider positions into a print-ready STL, plus a desktop editor to design it visually.
 
-This is a Python project for a tool for automatic STL file generation. Designed for creation of 3d printing models.
+It can be used in two ways:
 
-- Left panel — set box width/depth/height/wall thickness via spinboxes.
+- **As a library / product plugin** — installed by [Print-Platform](https://github.com/guustavomc/Print-Platform), which discovers it automatically and uses it to generate, slice and quote drawer organizers.
+- **As a desktop app** — a PyQt editor with a 2D layout canvas and live 3D preview, for designing and exporting organizers locally.
 
-- 2D Layout Canvas (middle) — interactive top-down view.
+Both use the same generator, so a design made in the desktop app produces exactly the same part the platform would print.
 
-- 3D Preview (right) — live OpenGL render that updates instantly as you design. Drag to orbit, scroll to zoom.
+## Features
 
-- Export — click Export STL to save a binary STL ready for any slicer (PrusaSlicer, Cura, Bambu Studio, etc.).
+- **Watertight meshes** — built with boolean operations (trimesh + manifold3d), always manifold and ready for any slicer
+- **Parameter validation** — minimum wall, floor and compartment sizes checked before generating
+- **Rounded corners** *(in progress)* — configurable outer corner radius
+- **STL and GLB export** — STL for slicers, GLB for web previews
+- **Desktop editor** — drag dividers on a 2D top-down canvas and see the result in a live 3D preview
 
 ## Installation
 
-1. Clone the project
+Requires Python 3.14.
+
 ```bash
 git clone https://github.com/guustavomc/Drawer-Organizer-Builder
 cd Drawer-Organizer-Builder
-```
-
-2. Create virtual environment (optional)
-```bash
 python -m venv venv
 source venv/bin/activate     # Linux/Mac
 # venv\Scripts\activate      # Windows
 ```
 
-3. Install dependencies
+Library only (what Print-Platform installs, no GUI dependencies):
+
 ```bash
-pip install PyQt6 PyOpenGL PyOpenGL_accelerate numpy numpy-stl
+python -m pip install -e .
 ```
 
-4. Run the project
+With the desktop app:
+
 ```bash
-cd .\app\
-python main.py
+python -m pip install -e ".[desktop]"
 ```
 
-## Future Features
+## Usage
 
-- **Compartment dimension display** — show width × depth (in mm) inside each cell on the 2D canvas, plus X/Y coordinates for each divider vertex on hover
-- **Snap to grid / equal spacing** — hold Shift while dragging a divider to snap it to evenly-spaced positions
-- **Undo / Redo (Ctrl+Z / Ctrl+Y)** — history stack for divider additions, deletions, and moves
-- **Direct numeric input for divider position** — double-click a divider to type its exact mm position
-- **Minimum compartment size warning** — highlight compartments that are too narrow to print (below `2 × wall thickness`)
-- **Save / Load design (JSON)** — export and reload full designs including dimensions and divider positions
-- **Compartment labels** — type short labels per compartment shown in the 2D canvas and optionally embossed on the STL floor
-- **Divider height override** — set individual dividers shorter than the full box height
+### Desktop app
 
-## Project Structure
+```bash
+python -m drawer_organizer.desktop
+```
+
+- **Left panel** — set width, depth, height, wall thickness and corner radius
+- **2D layout canvas** (middle) — click to add dividers, drag to move them
+- **3D preview** (right) — updates as you design; drag to orbit, scroll to zoom
+- **Export STL** — saves a binary STL ready for any slicer (OrcaSlicer, PrusaSlicer, Cura, Bambu Studio...)
+
+Invalid designs (a compartment too narrow to print, a floor thicker than the box...) are flagged in the UI instead of producing a broken STL.
+
+### As a library
+
+```python
+from drawer_organizer import DrawerOrganizerGenerator, DrawerOrganizerParams
+
+params = DrawerOrganizerParams(
+    width=120, depth=80, height=40,
+    wall=1.6, floor=1.2,
+    dividers_x=[40, 80],   # divider centers in mm, from the outer left edge
+    dividers_y=[40],       # divider centers in mm, from the outer front edge
+)
+
+result = DrawerOrganizerGenerator().generate(params)
+
+result.stl_bytes      # binary STL
+result.to_dict()      # volume, dimensions, triangle count
+```
+
+Invalid parameters raise a Pydantic `ValidationError` explaining what is wrong.
+
+### Parameters
+
+All measurements in millimeters, external dimensions.
+
+| Parameter    | Default | Description |
+| ------------ | ------- | ----------- |
+| `width`      | —       | External width (X) |
+| `depth`      | —       | External depth (Y) |
+| `height`     | —       | External height (Z) |
+| `wall`       | 1.6     | Wall and divider thickness (min 1.2) |
+| `floor`      | 1.2     | Floor thickness (min 0.8) |
+| `dividers_x` | `[]`    | Center of each divider parallel to Y, from the outer left edge |
+| `dividers_y` | `[]`    | Center of each divider parallel to X, from the outer front edge |
+
+Every compartment must be at least 10 mm wide.
+
+The parameters serialize to JSON (`params.model_dump_json()`). This is the same format Print-Platform's API receives, so a saved design can be sent straight to a quote.
+
+## How it plugs into Print-Platform
+
+This package implements the contract from [print-generator-sdk](https://github.com/guustavomc/print-generator-sdk) and registers itself as a product plugin in `pyproject.toml`:
+
+```toml
+[project]
+dependencies = ["print-generator-sdk", "trimesh", "manifold3d"]
+
+[project.optional-dependencies]
+desktop = ["PyQt6", "PyOpenGL"]
+
+[project.entry-points."print_platform.products"]
+drawer-organizer = "drawer_organizer.generator:DrawerOrganizerGenerator"
+```
+
+Print-Platform only needs to install this package; it finds the generator through the entry point. The desktop dependencies are optional, so the server never installs PyQt.
+
+## Project structure
 
 ```
 Drawer-Organizer-Builder/
+├── pyproject.toml
 ├── README.md
-└── app/
-    ├── main.py            # Entry point
-    ├── model.py           # Data model (box/compartment state)
-    ├── geometry.py        # STL geometry generation
-    └── ui/
-        ├── __init__.py
-        ├── main_window.py # Main application window and left panel controls
-        ├── layout_canvas.py # 2D interactive top-down canvas
-        └── gl_preview.py  # 3D OpenGL real-time preview
-```
-### model.py — The Data
-
-Class OrgaizerModel is the container for the model dimensions:
-- Width (X)
-- Depth (Y)
-- Height (Z)
-- Wall thickness 
-- Corner radius
-
-Also contains the X and Y Dividers, storing them on a float list.
-
-
-### geometry.py — The Triangle and File Generation 
-
-#### box_triangles: 
-- Input are the coordinates for the starting point(x0, y0, z0) and end point(x1,y1,z1) of the rectangle.
-- Initially creates a base rectangle, defines 8 corners using the inputs above.
-- Then group them into 6 faces(bottom, top, front, back, left, right). This is done as each part of the organizer is a 3d box considering width, depth, height and thickness.
-- For each face generates two triangles.
-```
-(x0,y0,z0) ──── (x1,y0,z0)
-    |                 |
-(x0,y1,z0) ──── (x1,y1,z0)   ← bottom face, then same thing at z1 for top
+├── src/
+│   └── drawer_organizer/
+│       ├── __init__.py
+│       ├── params.py          # DrawerOrganizerParams + validation
+│       ├── generator.py       # DrawerOrganizerGenerator (trimesh + manifold3d)
+│       └── desktop/           # Optional PyQt app
+│           ├── __main__.py    # Entry point (python -m drawer_organizer.desktop)
+│           ├── main_window.py # Main window and left panel controls
+│           ├── layout_canvas.py # 2D interactive top-down canvas
+│           └── gl_preview.py  # 3D OpenGL real-time preview
+└── tests/
+    ├── test_params.py
+    └── test_generator.py
 ```
 
-#### rounded_rect_profile:
-- Input is the four corners of a regtangle and the radius.
-- Input also outlines the number of segments of each corner.
-- It works by looping over 4 corners. For each corner it knows where the arc center is (pulled inward by r from the corner) and what angle range the arc covers (0°→90°, 90°→180°, etc.)
-- It places segments+1 points along each arc using cos and sin. As we have segments as 8 we will get 9 points per corner = 36 points total for the full outline.
-- Return a list of points, generating a 2D outline of the rounded rectangle.
+The desktop app never builds geometry itself: it keeps the UI state, converts it into `DrawerOrganizerParams` and renders the mesh returned by the generator.
+
+## Running tests
+
+```bash
+python -m pytest -v
 ```
-╭──────╮
-│      │   ← this shape, described as 36 (x,y) points
-╰──────╯
-```
-#### extrude_profile:
-- Input is the list of points of the 2D outline profile generated by rounded_rect_profile and two z positions(z0 and z1).
-- For each pair of adjacent points along the outline, it creates a rectangular side face (2 triangles) going from z0 up to z1.
-- Like if we started creating triangles from the 2d points at z0 to the Height of the organizer, creating vertical 2d triangles. 
 
-#### cap_triangles:
-- input the list of points of 2d outline, thickness and flip.
-- It finds the center of the shape and generates triangles, from the center to every edge.
-- The flip parameter controls which way the face points (its normal). *flip=False* → normal points up (used for the interior floor, which you see from inside the box). 
-*flip=True* → normal points down (used for the exterior bottom, which faces the table).
+## Roadmap
 
-#### ring_cap_triangles:
-- Input the inner points, outer points and the height.
-- fills the very top edge of the wall , the cap on top of the wall.
-- It works by going around the shape point by point. At each step it has 4 points, two from the outer edge and two from the inner edge and makes 2 triangles out of them.
+- [ ] **Package split**
+  - [ ] Move the generator from Print-Platform into `src/drawer_organizer/`
+  - [ ] Replace the hand-built triangle geometry (`geometry.py`) with the generator
+  - [ ] Move the PyQt app into `desktop/` as an optional extra
+  - [ ] Register the `print_platform.products` entry point
+- [ ] **Geometry**
+  - [ ] Rounded outer corners (`corner_radius`)
+  - [ ] Divider height override — individual dividers shorter than the box
+  - [ ] Compartment labels embossed on the floor
+- [ ] **Desktop editor**
+  - [ ] Show validation errors inline (compartments too narrow to print)
+  - [ ] Compartment dimension display (width × depth inside each cell)
+  - [ ] Snap to grid / equal spacing (hold Shift while dragging)
+  - [ ] Direct numeric input for divider position (double-click a divider)
+  - [ ] Undo / Redo (Ctrl+Z / Ctrl+Y)
+  - [ ] Save / Load design as JSON (same format as the platform API)
 
-#### hollow_rounded_box:
-- It actually builds the full drawer organizer compartment. It assembles 5 separate surfaces(interior floor, exterior floor, inner walls, outer walls and top rim).
-- Input parameters:
-    - x0, y0, z0 / x1, y1 — outer box position and size
-    - z_top — total height of the box
-    - wall — how thick the walls and floor are
-    - r — corner rounding radius
-    - segments — smoothness of rounded corners
+## Related projects
 
-- It creates two rounded rectangle profiles — one for the outside edge, one for the inside edge (offset inward by wall thickness). Then it builds:
-    1. Outer walls — from z0 to z_top along the outer profile
-    2. Exterior bottom — flat face at z0, normals pointing down
-    3. Inner walls — from z_floor (= z0 + wall) to z_top along the inner profile, reversed so normals face inward
-    4. Interior floor — flat face at z_floor, normals pointing up (what you see inside)
-    5. Top rim — the flat ring at z_top connecting the outer and inner edges (the top ledge of the box walls)
+- [Print-Platform](https://github.com/guustavomc/Print-Platform) — the 3D printing platform that uses this package as a product
+- [print-generator-sdk](https://github.com/guustavomc/print-generator-sdk) — the contract every product implements
+
+## Author
+
+**Gustavo Conceição** · [LinkedIn](https://www.linkedin.com/in/gustavo-m-conceição) · [GitHub](https://github.com/guustavomc)
