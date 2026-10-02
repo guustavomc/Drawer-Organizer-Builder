@@ -1,62 +1,95 @@
 # Drawer-Organizer-Builder
 
-> Parametric drawer organizer generator: a Python package that turns dimensions and divider positions into a print-ready STL, plus a desktop editor to design it visually.
+> Parametric drawer organizer generator: turns dimensions and divider positions into a print-ready STL, with a desktop editor to design it visually.
 
 It can be used in two ways:
 
-- **As a library / product plugin** — installed by [Print-Platform](https://github.com/guustavomc/Print-Platform), which discovers it automatically and uses it to generate, slice and quote drawer organizers.
-- **As a desktop app** — a PyQt editor with a 2D layout canvas and live 3D preview, for designing and exporting organizers locally.
+- **As a desktop app**: a PyQt editor with a 2D layout canvas and a live 3D preview, for designing and exporting organizers locally.
+- **As a library / product plugin**: installed by [Print-Platform](https://github.com/guustavomc/Print-Platform), which discovers it automatically and uses it to generate, slice and quote drawer organizers.
 
 Both use the same generator, so a design made in the desktop app produces exactly the same part the platform would print.
 
 ## Features
 
-- **Watertight meshes** — built with boolean operations (trimesh + manifold3d), always manifold and ready for any slicer
-- **Parameter validation** — minimum wall, floor and compartment sizes checked before generating
-- **Rounded corners** *(in progress)* — configurable outer corner radius
-- **STL and GLB export** — STL for slicers, GLB for web previews
-- **Desktop editor** — drag dividers on a 2D top-down canvas and see the result in a live 3D preview
+- **Watertight meshes**: built with boolean operations (trimesh + manifold3d), always manifold and ready for any slicer
+- **Parameter validation**: minimum wall, floor and compartment sizes are checked before generating
+- **Rounded corners**: configurable outer corner radius, with walls of constant thickness
+- **STL and GLB export**: STL for slicers, GLB for web previews
+- **Desktop editor**: drag dividers on a 2D top-down canvas and see the result in a live 3D preview
 
-## Installation
+## Requirements
 
-Requires Python 3.14.
+- Python 3.12 or newer
+- Git (the SDK is installed from GitHub)
+- For the desktop app: a machine with OpenGL support
+
+## Getting started
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/guustavomc/Drawer-Organizer-Builder
 cd Drawer-Organizer-Builder
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
 python -m venv venv
-source venv/bin/activate     # Linux/Mac
-# venv\Scripts\activate      # Windows
 ```
-
-Library only (what Print-Platform installs, no GUI dependencies):
 
 ```bash
-python -m pip install -e .
+source venv/bin/activate        # Linux / macOS
+venv\Scripts\activate           # Windows (cmd / PowerShell)
 ```
 
-With the desktop app:
+### 3. Install
+
+Choose what you need. The parts in brackets are optional extras:
 
 ```bash
-python -m pip install -e ".[desktop]"
+python -m pip install -e ".[desktop]"       # library + desktop app
+python -m pip install -e ".[desktop,dev]"   # library + desktop app + test tools
+python -m pip install -e .                  # library only (what Print-Platform installs)
 ```
 
-## Usage
+`-e` (editable) links the installed package to this folder, so code changes take effect without reinstalling. The [Print-Generator-SDK](https://github.com/guustavomc/Print-Generator-SDK) is downloaded from GitHub automatically.
 
-### Desktop app
+### 4. Run the desktop app
 
 ```bash
 python -m drawer_organizer.desktop
 ```
 
-- **Left panel** — set width, depth, height, wall thickness and corner radius
-- **2D layout canvas** (middle) — click to add dividers, drag to move them
-- **3D preview** (right) — updates as you design; drag to orbit, scroll to zoom
-- **Export STL** — saves a binary STL ready for any slicer (OrcaSlicer, PrusaSlicer, Cura, Bambu Studio...)
+Installing the package also creates a shortcut command, so this works too:
 
-Invalid designs (a compartment too narrow to print, a floor thicker than the box...) are flagged in the UI instead of producing a broken STL.
+```bash
+drawer-organizer
+```
 
-### As a library
+### 5. Run the tests
+
+Requires the `dev` extra:
+
+```bash
+python -m pytest -v
+```
+
+## Using the desktop app
+
+- **Left panel**: set width, depth, height, wall thickness, floor thickness and corner radius; add evenly spaced dividers with the X/Y counters
+- **2D layout canvas** (middle):
+  - Left-click: add an X divider
+  - Right-click: add a Y divider
+  - Drag: move a divider
+  - Hover + `Delete`: remove a divider
+- **3D preview** (right): updates as you design; drag to orbit, scroll to zoom
+- **Info box**: number of compartments, volume and triangle count
+- **Export STL**: saves a binary STL ready for any slicer (OrcaSlicer, PrusaSlicer, Cura, Bambu Studio...)
+
+Invalid designs (a compartment too narrow to print, a floor thicker than the box...) are shown in red in the status bar. The preview keeps the last valid part, and export is blocked until the design is fixed.
+
+## Using it as a library
 
 ```python
 from drawer_organizer import DrawerOrganizerGenerator, DrawerOrganizerParams
@@ -64,95 +97,119 @@ from drawer_organizer import DrawerOrganizerGenerator, DrawerOrganizerParams
 params = DrawerOrganizerParams(
     width=120, depth=80, height=40,
     wall=1.6, floor=1.2,
+    corner_radius=5,
     dividers_x=[40, 80],   # divider centers in mm, from the outer left edge
     dividers_y=[40],       # divider centers in mm, from the outer front edge
 )
 
 result = DrawerOrganizerGenerator().generate(params)
 
-result.stl_bytes      # binary STL
-result.to_dict()      # volume, dimensions, triangle count
+with open("organizer.stl", "wb") as f:
+    f.write(result.stl_bytes)
+
+print(result.to_dict())   # volume, dimensions, watertight flag, triangle count
 ```
 
-Invalid parameters raise a Pydantic `ValidationError` explaining what is wrong.
+Invalid parameters raise a Pydantic `ValidationError` explaining what is wrong:
+
+```python
+DrawerOrganizerParams(width=120, depth=80, height=40, dividers_x=[40, 45])
+# ValidationError: dividers_x: vão de 3.4 mm entre 40.8 e 44.2 (mínimo 10.0 mm)
+```
 
 ### Parameters
 
 All measurements in millimeters, external dimensions.
 
-| Parameter    | Default | Description |
-| ------------ | ------- | ----------- |
-| `width`      | —       | External width (X) |
-| `depth`      | —       | External depth (Y) |
-| `height`     | —       | External height (Z) |
-| `wall`       | 1.6     | Wall and divider thickness (min 1.2) |
-| `floor`      | 1.2     | Floor thickness (min 0.8) |
-| `dividers_x` | `[]`    | Center of each divider parallel to Y, from the outer left edge |
-| `dividers_y` | `[]`    | Center of each divider parallel to X, from the outer front edge |
+| Parameter       | Default | Description |
+| --------------- | ------- | ----------- |
+| `width`         | —       | External width (X), up to 256 |
+| `depth`         | —       | External depth (Y), up to 256 |
+| `height`        | —       | External height (Z), up to 256 |
+| `wall`          | 1.6     | Wall and divider thickness (1.2 to 10) |
+| `floor`         | 1.2     | Floor thickness (0.8 to 10, less than `height`) |
+| `corner_radius` | 0       | Outer vertical corner radius (up to half of the smaller side) |
+| `dividers_x`    | `[]`    | Center of each divider parallel to Y, from the outer left edge |
+| `dividers_y`    | `[]`    | Center of each divider parallel to X, from the outer front edge |
 
 Every compartment must be at least 10 mm wide.
 
-The parameters serialize to JSON (`params.model_dump_json()`). This is the same format Print-Platform's API receives, so a saved design can be sent straight to a quote.
+The parameters serialize to JSON (`params.model_dump_json()`), the same format Print-Platform's API receives, so a saved design can be sent straight to a quote.
 
 ## How it plugs into Print-Platform
 
-This package implements the contract from [print-generator-sdk](https://github.com/guustavomc/print-generator-sdk) and registers itself as a product plugin in `pyproject.toml`:
+This package implements the contract from [Print-Generator-SDK](https://github.com/guustavomc/Print-Generator-SDK) and registers itself as a product plugin in `pyproject.toml`:
 
 ```toml
-[project]
-dependencies = ["print-generator-sdk", "trimesh", "manifold3d"]
-
-[project.optional-dependencies]
-desktop = ["PyQt6", "PyOpenGL"]
-
 [project.entry-points."print_platform.products"]
 drawer-organizer = "drawer_organizer.generator:DrawerOrganizerGenerator"
 ```
 
-Print-Platform only needs to install this package; it finds the generator through the entry point. The desktop dependencies are optional, so the server never installs PyQt.
+Print-Platform only needs to install this package; it finds the generator through that entry point. The desktop dependencies are an optional extra, so the server never installs PyQt.
+
+## Development
+
+### Working on the SDK at the same time
+
+Clone both repositories side by side:
+
+```
+workspace/
+├── Print-Generator-SDK/
+└── Drawer-Organizer-Builder/
+```
+
+Then, inside this project's virtual environment, install the SDK from your local copy **before** installing this package:
+
+```bash
+python -m pip install -e ../Print-Generator-SDK
+python -m pip install -e ".[desktop,dev]"
+```
+
+pip sees the SDK is already installed and keeps your local copy, so changes to the SDK show up here immediately.
+
+### What the tests cover
+
+- `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, unknown fields, JSON round trip)
+- `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
 
 ## Project structure
 
 ```
 Drawer-Organizer-Builder/
-├── pyproject.toml
+├── pyproject.toml               # Package metadata, dependencies, extras and entry points
 ├── README.md
 ├── src/
 │   └── drawer_organizer/
-│       ├── __init__.py
-│       ├── params.py          # DrawerOrganizerParams + validation
-│       ├── generator.py       # DrawerOrganizerGenerator (trimesh + manifold3d)
-│       └── desktop/           # Optional PyQt app
-│           ├── __main__.py    # Entry point (python -m drawer_organizer.desktop)
-│           ├── main_window.py # Main window and left panel controls
+│       ├── __init__.py          # Public API: DrawerOrganizerParams, DrawerOrganizerGenerator
+│       ├── params.py            # Parameters and validation
+│       ├── generator.py         # Mesh generation (trimesh + manifold3d)
+│       └── desktop/             # Optional PyQt app
+│           ├── __main__.py      # Entry point (python -m drawer_organizer.desktop)
+│           ├── model.py         # UI state → DrawerOrganizerParams
+│           ├── main_window.py   # Main window and left panel controls
 │           ├── layout_canvas.py # 2D interactive top-down canvas
-│           └── gl_preview.py  # 3D OpenGL real-time preview
+│           └── gl_preview.py    # 3D OpenGL real-time preview
 └── tests/
     ├── test_params.py
     └── test_generator.py
 ```
 
-The desktop app never builds geometry itself: it keeps the UI state, converts it into `DrawerOrganizerParams` and renders the mesh returned by the generator.
-
-## Running tests
-
-```bash
-python -m pytest -v
-```
+The desktop app never builds geometry itself: `model.py` keeps the UI state (dividers as fractions of the inner space), converts it into `DrawerOrganizerParams` and the preview renders the mesh returned by the generator.
 
 ## Roadmap
 
-- [ ] **Package split**
-  - [ ] Move the generator from Print-Platform into `src/drawer_organizer/`
-  - [ ] Replace the hand-built triangle geometry (`geometry.py`) with the generator
-  - [ ] Move the PyQt app into `desktop/` as an optional extra
-  - [ ] Register the `print_platform.products` entry point
+- [x] **Package split**
+  - [x] Move the generator from Print-Platform into `src/drawer_organizer/`
+  - [x] Replace the hand-built triangle geometry (`geometry.py`) with the generator
+  - [x] Move the PyQt app into `desktop/` as an optional extra
+  - [x] Register the `print_platform.products` entry point
 - [ ] **Geometry**
-  - [ ] Rounded outer corners (`corner_radius`)
-  - [ ] Divider height override — individual dividers shorter than the box
+  - [x] Rounded outer corners (`corner_radius`)
+  - [ ] Divider height override: individual dividers shorter than the box
   - [ ] Compartment labels embossed on the floor
 - [ ] **Desktop editor**
-  - [ ] Show validation errors inline (compartments too narrow to print)
+  - [x] Show validation errors inline
   - [ ] Compartment dimension display (width × depth inside each cell)
   - [ ] Snap to grid / equal spacing (hold Shift while dragging)
   - [ ] Direct numeric input for divider position (double-click a divider)
@@ -161,8 +218,8 @@ python -m pytest -v
 
 ## Related projects
 
-- [Print-Platform](https://github.com/guustavomc/Print-Platform) — the 3D printing platform that uses this package as a product
-- [print-generator-sdk](https://github.com/guustavomc/print-generator-sdk) — the contract every product implements
+- [Print-Platform](https://github.com/guustavomc/Print-Platform): the 3D printing platform that uses this package as a product
+- [Print-Generator-SDK](https://github.com/guustavomc/Print-Generator-SDK): the contract every product implements
 
 ## Author
 
