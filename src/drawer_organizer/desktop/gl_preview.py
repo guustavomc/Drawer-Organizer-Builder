@@ -25,7 +25,11 @@ class GLPreview(QOpenGLWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def refresh(self):
-        self._triangles = self.model.build_triangles()
+        try:
+            self._triangles = self.model.build().mesh.triangles
+            self.error = None
+        except ValidationError as e:
+            self.error = e.errors()[0]["msg"]   # mantém a malha anterior
         self.update()
 
     def initializeGL(self):
@@ -38,7 +42,7 @@ class GLPreview(QOpenGLWidget):
         glLightfv(GL_LIGHT0, GL_DIFFUSE,  [0.9, 0.9, 0.9, 1])
         glLightfv(GL_LIGHT0, GL_AMBIENT,  [0.4, 0.4, 0.4, 1])
         glClearColor(0.106, 0.106, 0.106, 1)
-        self._triangles = self.model.build_triangles()
+        self._triangles = self.refresh()
 
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)

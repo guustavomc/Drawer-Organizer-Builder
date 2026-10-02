@@ -1,8 +1,8 @@
 import trimesh
 from pydantic import Field, model_validator
 
-from core.base import BaseProductGenerator, BaseProductParams, GenerationResult
-from core.mesh_utils import BED_SIZE_MM, build_result
+from print_generator_sdk.base import BaseProductGenerator, GenerationResult
+from print_generator_sdk.mesh_utils import build_result
 
 MIN_WALL_MM = 1.2         # parede mínima imprimível (3 linhas de 0.4 mm)
 MIN_FLOOR_MM = 0.8        # fundo mínimo (4 camadas de 0.2 mm)

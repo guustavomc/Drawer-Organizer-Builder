@@ -1,44 +1,29 @@
-from geometry import box_triangles, hollow_rounded_box
+from drawer_organizer import DrawerOrganizerGenerator, DrawerOrganizerParams
 
-# ─────────────────────────────────────────────
-#  Organizer model
-# ─────────────────────────────────────────────
 
 class OrganizerModel:
-    """Holds dimensions + divider positions and builds geometry."""
+    """Estado da interface. Não gera geometria: delega ao gerador."""
 
     def __init__(self):
-        self.width = 120.0    # mm  X
-        self.depth = 80.0     # mm  Y
-        self.height = 40.0    # mm  Z
-        self.wall = 2.0       # mm
-        self.corner_radius = 0.0 #mm
+        self.width = 120.0
+        self.depth = 80.0
+        self.height = 40.0
+        self.wall = 2.0
+        self.floor = 1.2
+        self.corner_radius = 0.0
+        # frações [0..1] do vão interno; a interface trabalha assim
+        self.x_dividers: list[float] = []
+        self.y_dividers: list[float] = []
 
-        # dividers as fractions [0..1] along each axis
-        self.x_dividers: list[float] = []   # vertical dividers (along X)
-        self.y_dividers: list[float] = []   # horizontal dividers (along Y)
+    def to_params(self) -> DrawerOrganizerParams:
+        T = self.wall
+        return DrawerOrganizerParams(
+            width=self.width, depth=self.depth, height=self.height,
+            wall=T, floor=self.floor, corner_radius=self.corner_radius,
+            dividers_x=[T + f * (self.width - 2 * T) for f in self.x_dividers],
+            dividers_y=[T + f * (self.depth - 2 * T) for f in self.y_dividers],
+        )
 
-    def build_triangles(self):
-        W, D, H, T = self.width, self.depth, self.height, self.wall
-        R = self.corner_radius
-        tris = []
-
-        if R > 0:
-            tris += hollow_rounded_box(0, 0, 0, W, D, H, T, R)
-        else:
-            tris += box_triangles(0, 0, 0, W, D, T)        # floor
-            tris += box_triangles(0, 0, 0, W, T, H)        # front wall
-            tris += box_triangles(0, D-T, 0, W, D, H)      # back wall
-            tris += box_triangles(0, 0, 0, T, D, H)        # left wall
-            tris += box_triangles(W-T, 0, 0, W, D, H)      # right wall
-
-        for frac in self.x_dividers:
-            x = T + frac * (W - 2*T)
-            tris += box_triangles(x - T/2, T, T, x + T/2, D-T, H)
-
-        for frac in self.y_dividers:
-            y = T + frac * (D - 2*T)
-            tris += box_triangles(T, y - T/2, T, W-T, y + T/2, H)
-
-        return tris
-
+    def build(self):
+        """Gera a peça. Levanta ValidationError se o design não é imprimível."""
+        return DrawerOrganizerGenerator().generate(self.to_params())
