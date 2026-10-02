@@ -1,5 +1,4 @@
-from drawer_organizer import DrawerOrganizerGenerator, DrawerOrganizerParams
-
+from .. import DrawerOrganizerGenerator, DrawerOrganizerParams
 
 class OrganizerModel:
     """Estado da interface. Não gera geometria: delega ao gerador."""

@@ -6,7 +6,11 @@ from PyQt6.QtWidgets import QSizePolicy
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from src.drawer_organizer.desktop.model import OrganizerModel
+from pydantic import ValidationError
+
+from print_generator_sdk import MeshValidationError
+
+from .model import OrganizerModel
 
 # ─────────────────────────────────────────────
 #  3-D OpenGL preview
@@ -16,20 +20,30 @@ class GLPreview(QOpenGLWidget):
     def __init__(self, model: OrganizerModel):
         super().__init__()
         self.model = model
-        self._triangles = []
+        self._triangles = np.empty((0, 3, 3))
+        self._normals = np.empty((0, 3))
+        self.result = None   # último GenerationResult válido
+        self.error = None    # mensagem do último design inválido
         self._rot_x = 30.0
         self._rot_z = -45.0
         self._zoom = 1.0
         self._last_pos = None
         self.setMinimumSize(100, 100)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.refresh()
 
     def refresh(self):
+        """Regera a peça. Se o design for inválido, mantém a última malha válida."""
         try:
-            self._triangles = self.model.build().mesh.triangles
-            self.error = None
+            self.result = self.model.build()
         except ValidationError as e:
-            self.error = e.errors()[0]["msg"]   # mantém a malha anterior
+            self.error = e.errors()[0]["msg"].removeprefix("Value error, ")
+        except MeshValidationError as e:
+            self.error = str(e)
+        else:
+            self.error = None
+            self._triangles = self.result.mesh.triangles
+            self._normals = self.result.mesh.face_normals
         self.update()
 
     def initializeGL(self):
@@ -42,7 +56,6 @@ class GLPreview(QOpenGLWidget):
         glLightfv(GL_LIGHT0, GL_DIFFUSE,  [0.9, 0.9, 0.9, 1])
         glLightfv(GL_LIGHT0, GL_AMBIENT,  [0.4, 0.4, 0.4, 1])
         glClearColor(0.106, 0.106, 0.106, 1)
-        self._triangles = self.refresh()
 
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
@@ -73,11 +86,7 @@ class GLPreview(QOpenGLWidget):
 
         glColor3f(0.9, 0.9, 0.9)
         glBegin(GL_TRIANGLES)
-        for v0, v1, v2 in self._triangles:
-            n = np.cross(v1 - v0, v2 - v0)
-            ln = np.linalg.norm(n)
-            if ln > 0:
-                n = n / ln
+        for (v0, v1, v2), n in zip(self._triangles, self._normals):
             glNormal3f(*n)
             glVertex3f(*v0)
             glVertex3f(*v1)

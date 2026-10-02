@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
 
-from geometry import write_stl
-from src.drawer_organizer.desktop.model import OrganizerModel
-from src.drawer_organizer.desktop.gl_preview import GLPreview
-from src.drawer_organizer.desktop.layout_canvas import LayoutCanvas
+from ..params import MIN_FLOOR_MM, MIN_WALL_MM
+from .gl_preview import GLPreview
+from .layout_canvas import LayoutCanvas
+from .model import OrganizerModel
 
 # ─────────────────────────────────────────────
 #  Main Window
@@ -42,20 +42,22 @@ class MainWindow(QMainWindow):
         self.spin_w = self._spin(10, 500, self.model.width,         "Width (X)")
         self.spin_d = self._spin(10, 500, self.model.depth,         "Depth (Y)")
         self.spin_h = self._spin(5,  300, self.model.height,        "Height (Z)")
-        self.spin_t = self._spin(0.5, 10, self.model.wall,          "Wall thickness")
+        self.spin_t = self._spin(MIN_WALL_MM,  10, self.model.wall,  "Wall thickness")
+        self.spin_f = self._spin(MIN_FLOOR_MM, 10, self.model.floor, "Floor thickness")
         self.spin_r = self._spin(0,   20, self.model.corner_radius, "Corner radius")
 
         for label, spin in [("Width (X):", self.spin_w),
                              ("Depth (Y):", self.spin_d),
                              ("Height (Z):", self.spin_h),
                              ("Wall (mm):", self.spin_t),
+                             ("Floor (mm):", self.spin_f),
                              ("Corner R (mm):", self.spin_r)]:
             row = QHBoxLayout()
             row.addWidget(QLabel(label))
             row.addWidget(spin)
             dim_layout.addLayout(row)
 
-        for spin in [self.spin_w, self.spin_d, self.spin_h, self.spin_t, self.spin_r]:
+        for spin in [self.spin_w, self.spin_d, self.spin_h, self.spin_t, self.spin_f, self.spin_r]:
             spin.valueChanged.connect(self._on_dim_changed)
 
         left.addWidget(dim_group)
@@ -90,7 +92,6 @@ class MainWindow(QMainWindow):
         self.info_label.setWordWrap(True)
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         left.addWidget(self.info_label)
-        self._update_info()
 
         left.addStretch()
 
@@ -122,7 +123,7 @@ class MainWindow(QMainWindow):
 
         # Status bar
         self.setStatusBar(QStatusBar())
-        self.statusBar().showMessage("Ready — design your organizer and export to STL.")
+        self._update_info()
 
     def _spin(self, lo, hi, val, tip):
         s = QDoubleSpinBox()
@@ -157,6 +158,7 @@ class MainWindow(QMainWindow):
         self.model.depth         = self.spin_d.value()
         self.model.height        = self.spin_h.value()
         self.model.wall          = self.spin_t.value()
+        self.model.floor         = self.spin_f.value()
         self.model.corner_radius = self.spin_r.value()
         self.canvas.update()
         self.gl.refresh()
@@ -203,26 +205,45 @@ class MainWindow(QMainWindow):
         self._update_info()
 
     def _update_info(self):
+        """Mostra o resumo da última peça gerada pelo preview (não gera de novo)."""
         nx = len(self.model.x_dividers)
-        ny = self.model.y_dividers.__len__()
+        ny = len(self.model.y_dividers)
         compartments = (nx + 1) * (ny + 1)
-        self.info_label.setText(
+        text = (
             f"<b>Compartments:</b> {compartments}<br>"
             f"X dividers: {nx}<br>"
             f"Y dividers: {ny}<br>"
-            f"Triangles: ~{len(self.model.build_triangles())}"
         )
+        if self.gl.result is not None:
+            stats = self.gl.result.to_dict()
+            text += (
+                f"Volume: {stats['volume_cm3']} cm³<br>"
+                f"Triangles: {stats['triangle_count']}"
+            )
+        self.info_label.setText(text)
+
+        if self.gl.error:
+            self.statusBar().setStyleSheet("color: #f38ba8;")
+            self.statusBar().showMessage(f"⚠ {self.gl.error}")
+        else:
+            self.statusBar().setStyleSheet("")
+            self.statusBar().showMessage("Ready — design your organizer and export to STL.")
 
     def _export_stl(self):
         path, _ = QFileDialog.getSaveFileName(
             self, "Save STL", "organizer.stl", "STL files (*.stl)")
         if not path:
             return
+        if self.gl.error:
+            QMessageBox.warning(self, "Invalid design", self.gl.error)
+            return
         try:
-            tris = self.model.build_triangles()
-            write_stl(tris, path)
+            result = self.model.build()
+            with open(path, "wb") as f:
+                f.write(result.stl_bytes)
+            n = len(result.mesh.faces)
             QMessageBox.information(self, "Exported",
-                f"STL saved to:\n{path}\n\n{len(tris)} triangles")
-            self.statusBar().showMessage(f"Exported {len(tris)} triangles → {path}")
+                f"STL saved to:\n{path}\n\n{n} triangles")
+            self.statusBar().showMessage(f"Exported {n} triangles → {path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))

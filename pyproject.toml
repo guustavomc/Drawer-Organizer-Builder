@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drawer-organizer"
+version = "0.1.0"
+description = "Parametric drawer organizer generator for Print-Platform, with a desktop editor"
+requires-python = ">=3.12"
+dependencies = [
+    # instala o SDK direto do GitHub
+    "print-generator-sdk @ git+https://github.com/guustavomc/Print-Generator-SDK@main",
+    "trimesh>=4.0",
+    "manifold3d>=3.0",
+    "pydantic>=2.13",
+]
+
+[project.optional-dependencies]
+desktop = ["PyQt6", "PyOpenGL"]   # pip install -e ".[desktop]" → só quem quer o app
+dev = ["pytest"]
+
+# É ISSO que faz o Print-Platform encontrar o produto sozinho
+[project.entry-points."print_platform.products"]
+drawer-organizer = "drawer_organizer.generator:DrawerOrganizerGenerator"
+
+# cria um comando "drawer-organizer" que abre o app
+[project.gui-scripts]
+drawer-organizer = "drawer_organizer.desktop.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

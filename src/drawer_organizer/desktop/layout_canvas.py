@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QRect, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont
 
-from src.drawer_organizer.desktop.model import OrganizerModel
+from .model import OrganizerModel
 # ─────────────────────────────────────────────
 #  2-D layout canvas
 # ─────────────────────────────────────────────
