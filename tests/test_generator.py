@@ -44,3 +44,9 @@ def test_registered_as_platform_plugin():
 
     eps = entry_points(group="print_platform.products")
     assert eps["drawer-organizer"].load() is DrawerOrganizerGenerator
+
+def test_square_box_with_maximum_corner_radius():
+    # raio = metade do lado: o contorno vira um círculo
+    result = generate(width=80, depth=80, corner_radius=40, dividers_x=[40])
+    assert result.is_watertight
+    assert result.dimensions_mm == pytest.approx((80, 80, 40), abs=0.01)
