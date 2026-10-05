@@ -8,6 +8,8 @@ from ..params import MIN_FLOOR_MM, MIN_WALL_MM
 from .gl_preview import GLPreview
 from .layout_canvas import LayoutCanvas
 from .model import OrganizerModel
+from print_generator_sdk import BED_SIZE_MM
+
 
 # ─────────────────────────────────────────────
 #  Main Window
@@ -39,9 +41,9 @@ class MainWindow(QMainWindow):
         dim_group = QGroupBox("Box Dimensions (mm)")
         dim_layout = QVBoxLayout(dim_group)
 
-        self.spin_w = self._spin(10, 500, self.model.width,         "Width (X)")
-        self.spin_d = self._spin(10, 500, self.model.depth,         "Depth (Y)")
-        self.spin_h = self._spin(5,  300, self.model.height,        "Height (Z)")
+        self.spin_w = self._spin(10, BED_SIZE_MM[0], self.model.width,  "Width (X)")
+        self.spin_d = self._spin(10, BED_SIZE_MM[1], self.model.depth,  "Depth (Y)")
+        self.spin_h = self._spin(5,  BED_SIZE_MM[2], self.model.height, "Height (Z)")
         self.spin_t = self._spin(MIN_WALL_MM,  10, self.model.wall,  "Wall thickness")
         self.spin_f = self._spin(MIN_FLOOR_MM, 10, self.model.floor, "Floor thickness")
         self.spin_r = self._spin(0,   20, self.model.corner_radius, "Corner radius")
