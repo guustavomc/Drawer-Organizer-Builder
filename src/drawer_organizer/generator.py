@@ -1,5 +1,5 @@
 import trimesh
-from manifold3d import CrossSection, JoinType
+from manifold3d import CrossSection
 
 from print_generator_sdk import BaseProductGenerator, GenerationResult, build_result
 

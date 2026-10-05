@@ -3,12 +3,12 @@ from PyQt6.QtWidgets import (
     QLabel, QDoubleSpinBox, QSpinBox, QPushButton, QGroupBox,
     QFileDialog, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
+from print_generator_sdk import BED_SIZE_MM
 
 from ..params import MIN_FLOOR_MM, MIN_WALL_MM
 from .gl_preview import GLPreview
 from .layout_canvas import LayoutCanvas
 from .model import OrganizerModel
-from print_generator_sdk import BED_SIZE_MM
 
 
 # ─────────────────────────────────────────────
