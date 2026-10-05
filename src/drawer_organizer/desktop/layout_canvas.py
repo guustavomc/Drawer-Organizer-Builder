@@ -24,11 +24,6 @@ class LayoutCanvas(QWidget):
         self.setMouseTracking(True)
         self._drag = None       # ('x'|'y', index)
         self._hover = None
-        self._mode = 'add'      # 'add' | 'remove'
-
-    def set_mode(self, mode):
-        self._mode = mode
-        self.update()
 
     # ── coordinate helpers ──────────────────
 

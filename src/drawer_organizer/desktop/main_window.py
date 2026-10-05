@@ -177,13 +177,6 @@ class MainWindow(QMainWindow):
         self._update_info()
 
     def _on_nx_changed(self, n):
-        current = len(self.model.x_dividers)
-        if n > current:
-            for _ in range(n - current):
-                self.model.x_dividers.append(
-                    (len(self.model.x_dividers) + 1) / (n + 1))
-        elif n < current:
-            self.model.x_dividers = self.model.x_dividers[:n]
         self.model.x_dividers = [
             (i + 1) / (n + 1) for i in range(n)]
         self.canvas.update()
@@ -232,20 +225,10 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Ready — design your organizer and export to STL.")
 
     def _export_stl(self):
+        if self.gl.error:
+            QMessageBox.warning(self, "Invalid design", self.gl.error)
+            return
         path, _ = QFileDialog.getSaveFileName(
             self, "Save STL", "organizer.stl", "STL files (*.stl)")
         if not path:
             return
-        if self.gl.error:
-            QMessageBox.warning(self, "Invalid design", self.gl.error)
-            return
-        try:
-            result = self.model.build()
-            with open(path, "wb") as f:
-                f.write(result.stl_bytes)
-            n = len(result.mesh.faces)
-            QMessageBox.information(self, "Exported",
-                f"STL saved to:\n{path}\n\n{n} triangles")
-            self.statusBar().showMessage(f"Exported {n} triangles → {path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
