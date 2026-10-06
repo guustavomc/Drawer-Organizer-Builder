@@ -1,3 +1,5 @@
+import math
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QLabel, QDoubleSpinBox, QSpinBox, QPushButton, QGroupBox,
@@ -46,7 +48,7 @@ class MainWindow(QMainWindow):
         self.spin_h = self._spin(5,  BED_SIZE_MM[2], self.model.height, "Height (Z)")
         self.spin_t = self._spin(MIN_WALL_MM,  10, self.model.wall,  "Wall thickness")
         self.spin_f = self._spin(MIN_FLOOR_MM, 10, self.model.floor, "Floor thickness")
-        self.spin_r = self._spin(0,   20, self.model.corner_radius, "Corner radius")
+        self.spin_r = self._spin(0, self._max_corner_radius(), self.model.corner_radius, "Corner radius")
 
         for label, spin in [("Width (X):", self.spin_w),
                              ("Depth (Y):", self.spin_d),
@@ -135,6 +137,10 @@ class MainWindow(QMainWindow):
         s.setToolTip(tip)
         return s
 
+    def _max_corner_radius(self):
+        # metade do menor lado, truncada para as 2 casas do spin não arredondarem acima do limite
+        return math.floor(min(self.spin_w.value(), self.spin_d.value()) * 50) / 100
+
     # ── Stylesheet ───────────────────────────
 
     def _apply_stylesheet(self):
@@ -161,6 +167,9 @@ class MainWindow(QMainWindow):
         self.model.height        = self.spin_h.value()
         self.model.wall          = self.spin_t.value()
         self.model.floor         = self.spin_f.value()
+        self.spin_r.blockSignals(True)
+        self.spin_r.setMaximum(self._max_corner_radius())
+        self.spin_r.blockSignals(False)
         self.model.corner_radius = self.spin_r.value()
         self.canvas.update()
         self.gl.refresh()
