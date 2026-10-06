@@ -232,3 +232,13 @@ class MainWindow(QMainWindow):
             self, "Save STL", "organizer.stl", "STL files (*.stl)")
         if not path:
             return
+        try:
+            result = self.model.build()
+            with open(path, "wb") as f:
+                f.write(result.stl_bytes)
+            n = len(result.mesh.faces)
+            QMessageBox.information(self, "Exported",
+                f"STL saved to:\n{path}\n\n{n} triangles")
+            self.statusBar().showMessage(f"Exported {n} triangles → {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
