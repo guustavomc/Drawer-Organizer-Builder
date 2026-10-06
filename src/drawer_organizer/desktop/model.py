@@ -7,7 +7,7 @@ class OrganizerModel:
         self.width = 120.0
         self.depth = 80.0
         self.height = 40.0
-        self.wall = 2.0
+        self.wall = 1.6
         self.floor = 1.2
         self.corner_radius = 0.0
         # frações [0..1] do vão interno; a interface trabalha assim

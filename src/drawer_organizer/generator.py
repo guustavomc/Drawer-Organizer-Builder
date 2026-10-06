@@ -1,5 +1,5 @@
 import trimesh
-from manifold3d import CrossSection, JoinType
+from manifold3d import CrossSection
 
 from print_generator_sdk import BaseProductGenerator, GenerationResult, build_result
 
@@ -22,13 +22,14 @@ def _rounded_prism(
     w, d, h = size
     if radius <= 0:
         return _box(size, min_corner)
-    # Retângulo encolhido pelo raio e depois expandido com junta redonda
-    profile = CrossSection.square((w - 2 * radius, d - 2 * radius)).offset(
-        radius, JoinType.Round, circular_segments=CORNER_SEGMENTS
-    )
+    # Envoltória de um círculo em cada canto. Com o raio igual a metade do lado
+    # os círculos coincidem e o perfil vira um círculo, sem caso especial.
+    corner = CrossSection.circle(radius, CORNER_SEGMENTS)
+    centers = [(x, y) for x in (radius, w - radius) for y in (radius, d - radius)]
+    profile = CrossSection.batch_hull([corner.translate(c) for c in centers])
     mesh = profile.extrude(h).to_mesh()
     prism = trimesh.Trimesh(vertices=mesh.vert_properties[:, :3], faces=mesh.tri_verts)
-    prism.apply_translation([min_corner[0] + radius, min_corner[1] + radius, min_corner[2]])
+    prism.apply_translation(min_corner)
     return prism
 
 
