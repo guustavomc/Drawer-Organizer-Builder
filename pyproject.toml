@@ -9,7 +9,7 @@ description = "Parametric drawer organizer generator for Print-Platform, with a 
 requires-python = ">=3.12"
 dependencies = [
     # instala o SDK direto do GitHub
-    "print-generator-sdk @ git+https://github.com/guustavomc/Print-Generator-SDK@main",
+    "print-generator-sdk @ git+https://github.com/guustavomc/Print-Generator-SDK@v0.1.0",
     "trimesh>=4.0",
     "manifold3d>=3.0",
     "pydantic>=2.13",
