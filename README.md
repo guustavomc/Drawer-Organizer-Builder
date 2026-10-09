@@ -17,6 +17,7 @@ Both use the same generator, so a design made in the desktop app produces exactl
 - **Per-divider height**: any divider can be shorter than the box
 - **STL and GLB export**: STL for slicers, GLB for web previews
 - **Desktop editor**: drag dividers on a 2D top-down canvas and see the result in a live 3D preview
+- **Save and reopen designs**: the editor stores a design as JSON, in the same format the platform API receives
 
 ## Requirements
 
@@ -86,9 +87,12 @@ python -m pytest -v
   - Hover + `Delete`: remove a divider
 - **3D preview** (right): updates as you design; drag to orbit, scroll to zoom
 - **Info box**: number of compartments, volume and triangle count
+- **Open / Save**: stores the design as a `.json` file and loads it back. The file uses the same format as the library parameters and Print-Platform's API. A file that is not a valid design is rejected with an error and the current design is kept
 - **Export STL**: saves a binary STL ready for any slicer (OrcaSlicer, PrusaSlicer, Cura, Bambu Studio...)
 
-Invalid designs (a compartment too narrow to print, a floor thicker than the box...) are shown in red in the status bar. The preview keeps the last valid part, and export is blocked until the design is fixed.
+Invalid designs (a compartment too narrow to print, a floor thicker than the box...) are shown in red in the status bar. The preview keeps the last valid part, and saving and exporting are blocked until the design is fixed.
+
+Opening a file replaces the current design without asking, so save first if you want to keep it. Divider heights can't be edited in the app yet, but a design that has them keeps them when opened and saved again.
 
 ## Using it as a library
 
@@ -149,7 +153,7 @@ Each divider is an object with two fields:
 
 Every compartment must be at least 10 mm wide.
 
-The parameters serialize to JSON (`params.model_dump_json()`), the same format Print-Platform's API receives, so a saved design can be sent straight to a quote.
+The parameters serialize to JSON (`params.model_dump_json()`), the same format Print-Platform's API receives. The desktop app saves designs in this format too, so a saved design can be sent straight to a quote, or loaded in code with `DrawerOrganizerParams.model_validate_json(...)`.
 
 ## How it plugs into Print-Platform
 
@@ -187,6 +191,7 @@ pip sees the SDK is already installed and keeps your local copy, so changes to t
 
 - `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, divider format and height limits, unknown fields, JSON round trip)
 - `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), full-height and short dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
+- `tests/test_model.py`: the desktop model converts divider fractions to millimeters, keeps divider heights, and loads a saved design back to the same parameters (runs without PyQt)
 
 ## Project structure
 
@@ -196,21 +201,22 @@ Drawer-Organizer-Builder/
 ├── README.md
 ├── src/
 │   └── drawer_organizer/
-│       ├── __init__.py          # Public API: DrawerOrganizerParams, DrawerOrganizerGenerator
+│       ├── __init__.py          # Public API: DrawerOrganizerParams, Divider, DrawerOrganizerGenerator
 │       ├── params.py            # Parameters and validation
 │       ├── generator.py         # Mesh generation (trimesh + manifold3d)
 │       └── desktop/             # Optional PyQt app
 │           ├── __main__.py      # Entry point (python -m drawer_organizer.desktop)
-│           ├── model.py         # UI state → DrawerOrganizerParams
+│           ├── model.py         # UI state ↔ DrawerOrganizerParams
 │           ├── main_window.py   # Main window and left panel controls
 │           ├── layout_canvas.py # 2D interactive top-down canvas
 │           └── gl_preview.py    # 3D OpenGL real-time preview
 └── tests/
     ├── test_params.py
-    └── test_generator.py
+    ├── test_generator.py
+    └── test_model.py
 ```
 
-The desktop app never builds geometry itself: `model.py` keeps the UI state (dividers as fractions of the inner space), converts it into `DrawerOrganizerParams` and the preview renders the mesh returned by the generator.
+The desktop app never builds geometry itself: `model.py` keeps the UI state (dividers as fractions of the inner space), converts it to and from `DrawerOrganizerParams` and the preview renders the mesh returned by the generator.
 
 ## Roadmap
 
@@ -230,7 +236,7 @@ The desktop app never builds geometry itself: `model.py` keeps the UI state (div
   - [ ] Snap to grid / equal spacing (hold Shift while dragging)
   - [ ] Direct numeric input for divider position (double-click a divider)
   - [ ] Undo / Redo (Ctrl+Z / Ctrl+Y)
-  - [ ] Save / Load design as JSON (same format as the platform API)
+  - [x] Save / Load design as JSON (same format as the platform API)
 
 ## Related projects
 
