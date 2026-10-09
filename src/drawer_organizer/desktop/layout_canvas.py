@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QRect, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont
 
-from .model import OrganizerModel
+from .model import DividerState, OrganizerModel
 # ─────────────────────────────────────────────
 #  2-D layout canvas
 # ─────────────────────────────────────────────
@@ -83,12 +83,12 @@ class LayoutCanvas(QWidget):
         # dividers
         pen_div = QPen(QColor("#0f0f0f"), 2)
         p.setPen(pen_div)
-        for frac in self.model.x_dividers:
-            px = self._frac_to_px(frac, 'x', r)
+        for div in self.model.x_dividers:
+            px = self._frac_to_px(div.frac, 'x', r)
             p.drawLine(px, inner.top(), px, inner.bottom())
 
-        for frac in self.model.y_dividers:
-            py = self._frac_to_px(frac, 'y', r)
+        for div in self.model.y_dividers:
+            py = self._frac_to_px(div.frac, 'y', r)
             p.drawLine(inner.left(), py, inner.right(), py)
 
         # hover highlight
@@ -97,10 +97,10 @@ class LayoutCanvas(QWidget):
             pen_h = QPen(QColor("#ce271e"), 2, Qt.PenStyle.DashLine)
             p.setPen(pen_h)
             if axis == 'x':
-                px = self._frac_to_px(self.model.x_dividers[idx], 'x', r)
+                px = self._frac_to_px(self.model.x_dividers[idx].frac, 'x', r)
                 p.drawLine(px, inner.top(), px, inner.bottom())
             else:
-                py = self._frac_to_px(self.model.y_dividers[idx], 'y', r)
+                py = self._frac_to_px(self.model.y_dividers[idx].frac, 'y', r)
                 p.drawLine(inner.left(), py, inner.right(), py)
 
         # border
@@ -119,12 +119,12 @@ class LayoutCanvas(QWidget):
 
     def _hit_divider(self, pos):
         r = self._box_rect()
-        for i, frac in enumerate(self.model.x_dividers):
-            px = self._frac_to_px(frac, 'x', r)
+        for i, div in enumerate(self.model.x_dividers):
+            px = self._frac_to_px(div.frac, 'x', r)
             if abs(pos.x() - px) <= self.DIVIDER_HIT:
                 return ('x', i)
-        for i, frac in enumerate(self.model.y_dividers):
-            py = self._frac_to_px(frac, 'y', r)
+        for i, div in enumerate(self.model.y_dividers):
+            py = self._frac_to_px(div.frac, 'y', r)
             if abs(pos.y() - py) <= self.DIVIDER_HIT:
                 return ('y', i)
         return None
@@ -141,12 +141,11 @@ class LayoutCanvas(QWidget):
             return
         if event.button() == Qt.MouseButton.LeftButton:
             frac = max(0.01, min(0.99, self._px_to_frac(pos.x(), 'x', r)))
-            self.model.x_dividers.append(frac)
-            self.model.x_dividers.sort()
+            self.model.x_dividers.append(DividerState(frac))
         elif event.button() == Qt.MouseButton.RightButton:
             frac = max(0.01, min(0.99, self._px_to_frac(pos.y(), 'y', r)))
-            self.model.y_dividers.append(frac)
-            self.model.y_dividers.sort()
+            self.model.y_dividers.append(DividerState(frac))
+        self.model.sort_dividers()
         self.modelChanged.emit()
         self.update()
 
@@ -157,10 +156,10 @@ class LayoutCanvas(QWidget):
             axis, idx = self._drag
             if axis == 'x':
                 frac = max(0.01, min(0.99, self._px_to_frac(pos.x(), 'x', r)))
-                self.model.x_dividers[idx] = frac
+                self.model.x_dividers[idx].frac = frac
             else:
                 frac = max(0.01, min(0.99, self._px_to_frac(pos.y(), 'y', r)))
-                self.model.y_dividers[idx] = frac
+                self.model.y_dividers[idx].frac = frac
             self.modelChanged.emit()
             self.update()
         else:
@@ -169,8 +168,7 @@ class LayoutCanvas(QWidget):
 
     def mouseReleaseEvent(self, event):
         if self._drag:
-            self.model.x_dividers.sort()
-            self.model.y_dividers.sort()
+            self.model.sort_dividers()
             self._drag = None
 
     def keyPressEvent(self, event):

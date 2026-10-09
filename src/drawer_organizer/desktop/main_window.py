@@ -5,12 +5,14 @@ from PyQt6.QtWidgets import (
     QLabel, QDoubleSpinBox, QSpinBox, QPushButton, QGroupBox,
     QFileDialog, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
+from pydantic import ValidationError
 from print_generator_sdk import BED_SIZE_MM
 
+from .. import DrawerOrganizerParams
 from ..params import MIN_FLOOR_MM, MIN_WALL_MM
 from .gl_preview import GLPreview
 from .layout_canvas import LayoutCanvas
-from .model import OrganizerModel
+from .model import DividerState, OrganizerModel
 
 
 # ─────────────────────────────────────────────
@@ -98,6 +100,16 @@ class MainWindow(QMainWindow):
         left.addWidget(self.info_label)
 
         left.addStretch()
+
+        # Design file buttons
+        file_row = QHBoxLayout()
+        btn_open = QPushButton("📂  Open…")
+        btn_open.clicked.connect(self._open_design)
+        file_row.addWidget(btn_open)
+        btn_save = QPushButton("📄  Save…")
+        btn_save.clicked.connect(self._save_design)
+        file_row.addWidget(btn_save)
+        left.addLayout(file_row)
 
         # Export button
         btn_export = QPushButton("💾  Export STL…")
@@ -187,14 +199,14 @@ class MainWindow(QMainWindow):
 
     def _on_nx_changed(self, n):
         self.model.x_dividers = [
-            (i + 1) / (n + 1) for i in range(n)]
+            DividerState((i + 1) / (n + 1)) for i in range(n)]
         self.canvas.update()
         self.gl.refresh()
         self._update_info()
 
     def _on_ny_changed(self, n):
         self.model.y_dividers = [
-            (i + 1) / (n + 1) for i in range(n)]
+            DividerState((i + 1) / (n + 1)) for i in range(n)]
         self.canvas.update()
         self.gl.refresh()
         self._update_info()
@@ -232,6 +244,55 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().setStyleSheet("")
             self.statusBar().showMessage("Ready — design your organizer and export to STL.")
+
+    def _save_design(self):
+        if self.gl.error:
+            QMessageBox.warning(self, "Invalid design", self.gl.error)
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save design", "organizer.json", "JSON files (*.json)")
+        if not path:
+            return
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(self.model.to_params().model_dump_json(indent=2))
+            self.statusBar().showMessage(f"Design saved → {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _open_design(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open design", "", "JSON files (*.json)")
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as f:
+                params = DrawerOrganizerParams.model_validate_json(f.read())
+        except (OSError, ValidationError) as e:
+            QMessageBox.critical(self, "Could not open design", str(e))
+            return
+        self.model.load_params(params)
+        self._sync_controls()
+        self.statusBar().showMessage(f"Design loaded ← {path}")
+
+    def _sync_controls(self):
+        """Leva o estado do modelo para os controles, depois de abrir um design."""
+        spins = {
+            self.spin_w: self.model.width, self.spin_d: self.model.depth,
+            self.spin_h: self.model.height, self.spin_t: self.model.wall,
+            self.spin_f: self.model.floor,
+        }
+        for spin, value in spins.items():
+            spin.blockSignals(True)
+            spin.setValue(value)
+            spin.blockSignals(False)
+        # o máximo do raio depende de largura e profundidade, já atualizadas
+        self.spin_r.blockSignals(True)
+        self.spin_r.setMaximum(self._max_corner_radius())
+        self.spin_r.setValue(self.model.corner_radius)
+        self.spin_r.blockSignals(False)
+        self._on_dim_changed()
+        self._on_layout_changed()
 
     def _export_stl(self):
         if self.gl.error:
