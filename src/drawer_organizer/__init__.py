@@ -1,4 +1,4 @@
 from .generator import DrawerOrganizerGenerator
-from .params import DrawerOrganizerParams
+from .params import Divider, DrawerOrganizerParams
 
-__all__ = ["DrawerOrganizerGenerator", "DrawerOrganizerParams"]
+__all__ = ["Divider", "DrawerOrganizerGenerator", "DrawerOrganizerParams"]

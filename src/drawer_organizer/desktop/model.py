@@ -1,4 +1,5 @@
-from .. import DrawerOrganizerGenerator, DrawerOrganizerParams
+from .. import Divider, DrawerOrganizerGenerator, DrawerOrganizerParams
+
 
 class OrganizerModel:
     """Estado da interface. Não gera geometria: delega ao gerador."""
@@ -19,8 +20,8 @@ class OrganizerModel:
         return DrawerOrganizerParams(
             width=self.width, depth=self.depth, height=self.height,
             wall=T, floor=self.floor, corner_radius=self.corner_radius,
-            dividers_x=[T + f * (self.width - 2 * T) for f in self.x_dividers],
-            dividers_y=[T + f * (self.depth - 2 * T) for f in self.y_dividers],
+            dividers_x=[Divider(position=T + f * (self.width - 2 * T)) for f in self.x_dividers],
+            dividers_y=[Divider(position=T + f * (self.depth - 2 * T)) for f in self.y_dividers],
         )
 
     def build(self):

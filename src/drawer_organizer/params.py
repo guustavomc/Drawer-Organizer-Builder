@@ -5,6 +5,17 @@ from print_generator_sdk import BED_SIZE_MM, BaseProductParams
 MIN_WALL_MM = 1.2          # parede mínima imprimível (3 linhas de 0.4 mm)
 MIN_FLOOR_MM = 0.8         # fundo mínimo (4 camadas de 0.2 mm)
 MIN_COMPARTMENT_MM = 10.0  # vão livre mínimo entre paredes/divisórias
+MIN_DIVIDER_RISE_MM = 2.0  # quanto uma divisória baixa precisa subir acima do fundo
+
+
+class Divider(BaseProductParams):
+    """Uma divisória interna."""
+
+    position: float = Field(description="Centro da divisória, a partir da borda externa")
+    height: float | None = Field(
+        default=None,
+        description="Altura a partir da base externa; None usa a altura total da caixa",
+    )
 
 
 class DrawerOrganizerParams(BaseProductParams):
@@ -17,13 +28,13 @@ class DrawerOrganizerParams(BaseProductParams):
     floor: float = Field(default=1.2, ge=MIN_FLOOR_MM, le=10, description="Espessura do fundo")
     corner_radius: float = Field(default=0.0, ge=0, description="Raio dos cantos verticais externos")
 
-    dividers_x: list[float] = Field(
+    dividers_x: list[Divider] = Field(
         default_factory=list,
-        description="Posição X (centro, a partir da borda externa esquerda) de cada divisória paralela ao eixo Y",
+        description="Divisórias paralelas ao eixo Y; position é o X a partir da borda externa esquerda",
     )
-    dividers_y: list[float] = Field(
+    dividers_y: list[Divider] = Field(
         default_factory=list,
-        description="Posição Y (centro, a partir da borda externa frontal) de cada divisória paralela ao eixo X",
+        description="Divisórias paralelas ao eixo X; position é o Y a partir da borda externa frontal",
     )
 
     @model_validator(mode="after")
@@ -32,8 +43,12 @@ class DrawerOrganizerParams(BaseProductParams):
             raise ValueError("floor deve ser menor que height")
         if self.corner_radius > min(self.width, self.depth) / 2:
             raise ValueError("corner_radius não pode passar da metade do menor lado")
-        _check_compartments("dividers_x", self.dividers_x, self.width, self.wall)
-        _check_compartments("dividers_y", self.dividers_y, self.depth, self.wall)
+        for name, dividers, length in (
+            ("dividers_x", self.dividers_x, self.width),
+            ("dividers_y", self.dividers_y, self.depth),
+        ):
+            _check_compartments(name, [d.position for d in dividers], length, self.wall)
+            _check_heights(name, dividers, self.floor + MIN_DIVIDER_RISE_MM, self.height)
         return self
 
 
@@ -47,4 +62,14 @@ def _check_compartments(name: str, positions: list[float], length: float, wall: 
             raise ValueError(
                 f"{name}: vão de {end - start:.1f} mm entre {start:.1f} e {end:.1f} "
                 f"(mínimo {MIN_COMPARTMENT_MM} mm)"
+            )
+
+
+def _check_heights(name: str, dividers: list[Divider], lowest: float, highest: float) -> None:
+    """Garante que toda divisória baixa sobe acima do fundo e não passa da caixa."""
+    for i, divider in enumerate(dividers):
+        if divider.height is not None and not lowest <= divider.height <= highest:
+            raise ValueError(
+                f"{name}[{i}]: height de {divider.height:.1f} mm fora do intervalo "
+                f"{lowest:.1f} a {highest:.1f} mm"
             )
