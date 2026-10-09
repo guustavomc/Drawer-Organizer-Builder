@@ -14,6 +14,7 @@ Both use the same generator, so a design made in the desktop app produces exactl
 - **Watertight meshes**: built with boolean operations (trimesh + manifold3d), always manifold and ready for any slicer
 - **Parameter validation**: minimum wall, floor and compartment sizes are checked before generating
 - **Rounded corners**: configurable outer corner radius, with walls of constant thickness
+- **Per-divider height**: any divider can be shorter than the box
 - **STL and GLB export**: STL for slicers, GLB for web previews
 - **Desktop editor**: drag dividers on a 2D top-down canvas and see the result in a live 3D preview
 
@@ -98,8 +99,10 @@ params = DrawerOrganizerParams(
     width=120, depth=80, height=40,
     wall=1.6, floor=1.2,
     corner_radius=5,
-    dividers_x=[40, 80],   # divider centers in mm, from the outer left edge
-    dividers_y=[40],       # divider centers in mm, from the outer front edge
+    # position: divider center in mm, from the outer left edge
+    dividers_x=[{"position": 40}, {"position": 80, "height": 20}],
+    # position: divider center in mm, from the outer front edge
+    dividers_y=[{"position": 40}],
 )
 
 result = DrawerOrganizerGenerator().generate(params)
@@ -113,9 +116,14 @@ print(result.to_dict())   # volume, dimensions, watertight flag, triangle count
 Invalid parameters raise a Pydantic `ValidationError` explaining what is wrong:
 
 ```python
-DrawerOrganizerParams(width=120, depth=80, height=40, dividers_x=[40, 45])
+DrawerOrganizerParams(
+    width=120, depth=80, height=40,
+    dividers_x=[{"position": 40}, {"position": 45}],
+)
 # ValidationError: dividers_x: vão de 3.4 mm entre 40.8 e 44.2 (mínimo 10.0 mm)
 ```
+
+Dividers can also be built with the `Divider` class (`from drawer_organizer import Divider`) instead of dictionaries: `Divider(position=80, height=20)`.
 
 ### Parameters
 
@@ -129,8 +137,15 @@ All measurements in millimeters, external dimensions.
 | `wall`          | 1.6     | Wall and divider thickness (1.2 to 10) |
 | `floor`         | 1.2     | Floor thickness (0.8 to 10, less than `height`) |
 | `corner_radius` | 0       | Outer vertical corner radius (up to half of the smaller side) |
-| `dividers_x`    | `[]`    | Center of each divider parallel to Y, from the outer left edge |
-| `dividers_y`    | `[]`    | Center of each divider parallel to X, from the outer front edge |
+| `dividers_x`    | `[]`    | Dividers parallel to Y; `position` is measured from the outer left edge |
+| `dividers_y`    | `[]`    | Dividers parallel to X; `position` is measured from the outer front edge |
+
+Each divider is an object with two fields:
+
+| Field      | Default | Description |
+| ---------- | ------- | ----------- |
+| `position` | —       | Center of the divider |
+| `height`   | `null`  | Height from the outer bottom of the box, from `floor` + 2 up to the box `height`; `null` or omitted means full height |
 
 Every compartment must be at least 10 mm wide.
 
@@ -170,8 +185,8 @@ pip sees the SDK is already installed and keeps your local copy, so changes to t
 
 ### What the tests cover
 
-- `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, unknown fields, JSON round trip)
-- `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
+- `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, divider format and height limits, unknown fields, JSON round trip)
+- `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), full-height and short dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
 
 ## Project structure
 
@@ -206,10 +221,11 @@ The desktop app never builds geometry itself: `model.py` keeps the UI state (div
   - [x] Register the `print_platform.products` entry point
 - [ ] **Geometry**
   - [x] Rounded outer corners (`corner_radius`)
-  - [ ] Divider height override: individual dividers shorter than the box
+  - [x] Divider height override: individual dividers shorter than the box
   - [ ] Compartment labels embossed on the floor
 - [ ] **Desktop editor**
   - [x] Show validation errors inline
+  - [ ] Set divider height in the editor
   - [ ] Compartment dimension display (width × depth inside each cell)
   - [ ] Snap to grid / equal spacing (hold Shift while dragging)
   - [ ] Direct numeric input for divider position (double-click a divider)

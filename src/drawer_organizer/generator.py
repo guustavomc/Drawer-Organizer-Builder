@@ -46,11 +46,16 @@ class DrawerOrganizerGenerator(BaseProductGenerator):
         cavity = _rounded_prism((w - 2 * t, d - 2 * t, h), (t, t, f), max(r - t, 0.0))
         tray = outer.difference(cavity)
 
-        # Divisórias ocupam a altura e a profundidade/largura totais: sobrepõem
-        # paredes e fundo, então a união funde tudo em um sólido só. A interseção
-        # com o contorno externo corta o que sairia pelos cantos arredondados.
-        dividers = [_box((t, d, h), (x - t / 2, 0, 0)) for x in params.dividers_x]
-        dividers += [_box((w, t, h), (0, y - t / 2, 0)) for y in params.dividers_y]
+        # Divisórias partem da base e ocupam a profundidade/largura totais, até a
+        # própria altura ou a da caixa: sobrepõem paredes e fundo, então a união
+        # funde tudo em um sólido só. A interseção com o contorno externo corta o
+        # que sairia pelos cantos arredondados.
+        dividers = [
+            _box((t, d, div.height or h), (div.position - t / 2, 0, 0)) for div in params.dividers_x
+        ]
+        dividers += [
+            _box((w, t, div.height or h), (0, div.position - t / 2, 0)) for div in params.dividers_y
+        ]
         if dividers:
             inside = trimesh.boolean.union(dividers).intersection(outer)
             tray = tray.union(inside)
