@@ -119,6 +119,10 @@ class LayoutCanvas(QWidget):
 
     def _hit_divider(self, pos):
         r = self._box_rect()
+
+        if not r.contains(pos):
+            return None
+
         for i, div in enumerate(self.model.x_dividers):
             px = self._frac_to_px(div.frac, 'x', r)
             if abs(pos.x() - px) <= self.DIVIDER_HIT:
@@ -136,6 +140,7 @@ class LayoutCanvas(QWidget):
         if hit:
             if event.button() == Qt.MouseButton.LeftButton:
                 self._drag = hit
+                self._update_cursor()
             return
         if not r.contains(pos):
             return
@@ -164,12 +169,14 @@ class LayoutCanvas(QWidget):
             self.update()
         else:
             self._hover = self._hit_divider(pos)
+            self._update_cursor()
             self.update()
 
     def mouseReleaseEvent(self, event):
         if self._drag:
             self.model.sort_dividers()
             self._drag = None
+            self._update_cursor()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Delete and self._hover:
@@ -179,9 +186,28 @@ class LayoutCanvas(QWidget):
             else:
                 del self.model.y_dividers[idx]
             self._hover = None
+            self._update_cursor()
             self.modelChanged.emit()
             self.update()
 
     def focusOutEvent(self, event):
         self._hover = None
+        self._update_cursor()
         self.update()
+
+    def _update_cursor(self):
+        divider = None
+        if self._drag is not None:
+            divider = self._drag
+        elif self._hover is not None:
+            divider = self._hover
+        else: 
+            self.unsetCursor()
+
+        if divider is not None:
+            axis, _idx = divider
+            if axis == 'x':
+                self.setCursor(Qt.CursorShape.SizeHorCursor)
+            else:
+                self.setCursor(Qt.CursorShape.SizeVerCursor)
+       
