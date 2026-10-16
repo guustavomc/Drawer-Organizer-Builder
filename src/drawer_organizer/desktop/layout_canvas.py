@@ -173,10 +173,14 @@ class LayoutCanvas(QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
+        pos = event.pos()
         if self._drag:
             self.model.sort_dividers()
+            self._hover = self._hit_divider(pos)
             self._drag = None
             self._update_cursor()
+            self.update()
+
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Delete and self._hover:
