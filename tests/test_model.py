@@ -54,3 +54,47 @@ def test_load_params_sorts_dividers():
     model = OrganizerModel()
     model.load_params(params)
     assert [d.height for d in model.x_dividers] == [None, 20]
+
+
+def test_compartment_sizes_without_dividers_is_inner_space():
+    model = OrganizerModel()  # 120 × 80, parede 1.6
+    assert model.compartment_sizes('x') == pytest.approx([116.8])
+    assert model.compartment_sizes('y') == pytest.approx([76.8])
+
+
+def test_compartment_sizes_subtracts_half_wall_per_divider_side():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.5)]
+    # centro em 60; cada lado vai da parede (1.6) até a face da divisória (60 - 0.8)
+    assert model.compartment_sizes('x') == pytest.approx([57.6, 57.6])
+
+
+def test_compartment_sizes_sum_is_inner_space_minus_dividers():
+    model = OrganizerModel()
+    model.wall = 2.4
+    model.x_dividers = [DividerState(0.2), DividerState(0.45), DividerState(0.8)]
+    inner = 120 - 2 * 2.4
+    assert sum(model.compartment_sizes('x')) == pytest.approx(inner - 3 * 2.4)
+
+
+def test_compartment_sizes_ignores_divider_order():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.66), DividerState(0.33)]  # fora de ordem, como durante um drag
+    unsorted = model.compartment_sizes('x')
+    model.sort_dividers()
+    assert unsorted == pytest.approx(model.compartment_sizes('x'))
+
+
+def test_compartment_sizes_y_uses_depth_and_y_dividers():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.25)]
+    model.y_dividers = [DividerState(0.5)]
+    # (80 - 2·1.6 - 1.6) / 2
+    assert model.compartment_sizes('y') == pytest.approx([37.6, 37.6])
+
+
+def test_compartment_sizes_negative_when_dividers_overlap():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.5), DividerState(0.5)]
+    # duas divisórias no mesmo centro: o vão entre elas é -parede
+    assert model.compartment_sizes('x')[1] == pytest.approx(-1.6)

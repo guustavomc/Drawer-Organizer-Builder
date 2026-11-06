@@ -55,6 +55,16 @@ class OrganizerModel:
         ]
         self.sort_dividers()
 
+    def compartment_sizes(self, axis: str) -> list[float]:
+        """Vão livre (mm) de cada compartimento num eixo, de face a face."""
+        T = self.wall
+        length = self.width if axis == 'x' else self.depth
+        divs = self.x_dividers if axis == 'x' else self.y_dividers
+        centers = sorted(T + d.frac * (length - 2 * T) for d in divs)
+        starts = [T] + [c + T / 2 for c in centers]
+        ends = [c - T / 2 for c in centers] + [length - T]
+        return [e - s for s, e in zip(starts, ends)]
+
     def build(self):
         """Gera a peça. Levanta ValidationError se o design não é imprimível."""
         return DrawerOrganizerGenerator().generate(self.to_params())
