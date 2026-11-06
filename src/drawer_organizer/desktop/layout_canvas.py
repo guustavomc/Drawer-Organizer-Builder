@@ -103,6 +103,11 @@ class LayoutCanvas(QWidget):
                 py = self._frac_to_px(self.model.y_dividers[idx].frac, 'y', r)
                 p.drawLine(inner.left(), py, inner.right(), py)
 
+        # compartment sizes
+        p.setPen(QColor('#3c3c3c'))
+        p.setFont(QFont('Arial', 8))
+        self._draw_compartment_labels(p, r, inner)
+
         # border
         p.setPen(QPen(QColor('#cdd6f4'), 2))
         p.setBrush(Qt.BrushStyle.NoBrush)
@@ -214,4 +219,28 @@ class LayoutCanvas(QWidget):
                 self.setCursor(Qt.CursorShape.SizeHorCursor)
             else:
                 self.setCursor(Qt.CursorShape.SizeVerCursor)
-       
+
+    # ── compartment labels ──────────────────
+
+    def _cell_edges_px(self, axis, r, inner):
+        """Pixel edges of the cells along one axis: inner wall, dividers, inner wall."""
+        divs = self.model.x_dividers if axis == 'x' else self.model.y_dividers
+        if axis == 'x':
+            lo, hi = inner.left(), inner.right()
+        else:
+            lo, hi = inner.top(), inner.bottom()
+        return [lo] + sorted(self._frac_to_px(d.frac, axis, r) for d in divs) + [hi]
+
+    def _draw_compartment_labels(self, p, r, inner):
+        widths = self.model.compartment_sizes('x')
+        depths = self.model.compartment_sizes('y')
+        xs = self._cell_edges_px('x', r, inner)
+        ys = self._cell_edges_px('y', r, inner)
+        fm = p.fontMetrics()
+        for i, w in enumerate(widths):
+            for j, d in enumerate(depths):
+                cell = QRect(xs[i], ys[j], xs[i+1] - xs[i], ys[j+1] - ys[j])
+                text = f"{w:.0f}×{d:.0f}"
+                if fm.horizontalAdvance(text) + 4 > cell.width() or fm.height() > cell.height():
+                    continue
+                p.drawText(cell, Qt.AlignmentFlag.AlignCenter, text)
