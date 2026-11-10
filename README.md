@@ -85,6 +85,7 @@ python -m pytest -v
   - Right-click: add a Y divider
   - Drag: move a divider
   - Hover + `Delete`: remove a divider
+  - Double-click a divider: type the size of the compartment to its left (X) or above it (Y); the compartment on the other side absorbs the change, and the dialog only accepts sizes that keep both printable
   - Each compartment shows its free size in mm (width × depth), when it's big enough to fit the text
 - **3D preview** (right): updates as you design; drag to orbit, scroll to zoom
 - **Info box**: number of compartments, volume and triangle count
@@ -192,7 +193,7 @@ pip sees the SDK is already installed and keeps your local copy, so changes to t
 
 - `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, divider format and height limits, unknown fields, JSON round trip)
 - `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), full-height and short dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
-- `tests/test_model.py`: the desktop model converts divider fractions to millimeters, keeps divider heights, loads a saved design back to the same parameters, and computes the free size of each compartment (runs without PyQt)
+- `tests/test_model.py`: the desktop model converts divider fractions to millimeters, keeps divider heights, loads a saved design back to the same parameters, computes the free size of each compartment, and sets a compartment size within the range that keeps both neighbors printable (runs without PyQt)
 
 ## Project structure
 
@@ -235,7 +236,7 @@ The desktop app never builds geometry itself: `model.py` keeps the UI state (div
   - [ ] Set divider height in the editor
   - [x] Compartment dimension display (width × depth inside each cell)
   - [ ] Snap to grid / equal spacing (hold Shift while dragging)
-  - [ ] Direct numeric input for divider position (double-click a divider)
+  - [x] Direct numeric input for divider position (double-click a divider, sets the compartment size)
   - [ ] Undo / Redo (Ctrl+Z / Ctrl+Y)
   - [x] Save / Load design as JSON (same format as the platform API)
 

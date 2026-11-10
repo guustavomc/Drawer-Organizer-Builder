@@ -1,5 +1,7 @@
+import math
+
 from PyQt6.QtWidgets import (
-   QWidget, QSizePolicy)
+   QWidget, QSizePolicy, QInputDialog, QMessageBox)
 from PyQt6.QtCore import Qt, QRect, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont
 
@@ -186,6 +188,39 @@ class LayoutCanvas(QWidget):
             self._update_cursor()
             self.update()
 
+    def mouseDoubleClickEvent(self, event):
+        hit = self._hit_divider(event.pos())
+        if not hit or event.button() != Qt.MouseButton.LeftButton:
+            # fora de uma divisória: mesmo comportamento de um clique simples
+            self.mousePressEvent(event)
+            return
+
+        axis, idx = hit
+        lo, hi = self.model.compartment_size_range(axis, idx)
+        # o diálogo arredonda os limites para 1 casa; arredonda para dentro
+        lo, hi = math.ceil(lo * 10) / 10, math.floor(hi * 10) / 10
+        if hi < lo:
+            QMessageBox.warning(
+                self, "No room",
+                "The compartments on both sides of this divider are already too "
+                "small. Move or delete a divider first.")
+            return
+
+        current = self.model.compartment_sizes(axis)[idx]
+        what = ("Width of the compartment to the left" if axis == 'x'
+                else "Depth of the compartment above")
+        size, ok = QInputDialog.getDouble(
+            self, "Compartment size",
+            f"{what} (mm)\nAllowed: {lo:.1f} – {hi:.1f}",
+            current, lo, hi, 1)
+        if not ok:
+            return
+
+        self.model.set_compartment_size(axis, idx, size)
+        self._hover = None
+        self._update_cursor()
+        self.modelChanged.emit()
+        self.update()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Delete and self._hover:
