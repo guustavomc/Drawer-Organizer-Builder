@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from .. import Divider, DrawerOrganizerGenerator, DrawerOrganizerParams
+from ..params import MIN_COMPARTMENT_MM
 
 @dataclass
 class DividerState:
@@ -64,6 +65,30 @@ class OrganizerModel:
         starts = [T] + [c + T / 2 for c in centers]
         ends = [c - T / 2 for c in centers] + [length - T]
         return [e - s for s, e in zip(starts, ends)]
+
+    def compartment_size_range(self, axis: str, idx: int) -> tuple[float, float]:
+        """Tamanhos válidos (mm) do compartimento antes da divisória idx.
+
+        A divisória só divide o espaço entre os dois vizinhos, então a soma
+        deles é fixa: o da esquerda vai de MIN até (soma - MIN).
+        Supõe as divisórias ordenadas.
+        """
+        sizes = self.compartment_sizes(axis)
+        return MIN_COMPARTMENT_MM, sizes[idx] + sizes[idx + 1] - MIN_COMPARTMENT_MM
+
+    def set_compartment_size(self, axis: str, idx: int, size: float) -> None:
+        """Move a divisória idx para que o compartimento antes dela tenha size mm.
+
+        Inverso de compartment_sizes; o compartimento depois dela absorve a
+        diferença. Supõe as divisórias ordenadas.
+        """
+        T = self.wall
+        length = self.width if axis == 'x' else self.depth
+        divs = self.x_dividers if axis == 'x' else self.y_dividers
+        inner = length - 2 * T
+        start = T if idx == 0 else T + divs[idx - 1].frac * inner + T / 2
+        center = start + size + T / 2
+        divs[idx].frac = (center - T) / inner
 
     def build(self):
         """Gera a peça. Levanta ValidationError se o design não é imprimível."""

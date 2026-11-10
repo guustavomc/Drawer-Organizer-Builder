@@ -98,3 +98,50 @@ def test_compartment_sizes_negative_when_dividers_overlap():
     model.x_dividers = [DividerState(0.5), DividerState(0.5)]
     # duas divisórias no mesmo centro: o vão entre elas é -parede
     assert model.compartment_sizes('x')[1] == pytest.approx(-1.6)
+
+
+def test_compartment_size_range_keeps_both_neighbors_printable():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.5)]  # vãos de 57.6 e 57.6
+    assert model.compartment_size_range('x', 0) == pytest.approx((10, 57.6 + 57.6 - 10))
+
+
+def test_compartment_size_range_uses_neighbors_of_that_divider():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.25), DividerState(0.5), DividerState(0.75)]
+    sizes = model.compartment_sizes('x')
+    assert model.compartment_size_range('x', 1) == pytest.approx((10, sizes[1] + sizes[2] - 10))
+
+
+def test_set_compartment_size_roundtrip():
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.3), DividerState(0.6)]
+    model.set_compartment_size('x', 1, 25)
+    assert model.compartment_sizes('x')[1] == pytest.approx(25)
+
+
+def test_set_compartment_size_only_moves_that_divider():
+    model = OrganizerModel()
+    model.wall = 2.4
+    model.x_dividers = [DividerState(0.3), DividerState(0.6)]
+    before = model.compartment_sizes('x')
+    model.set_compartment_size('x', 1, 30)
+    after = model.compartment_sizes('x')
+    assert after[0] == pytest.approx(before[0])  # compartimento anterior não muda
+    assert after[2] == pytest.approx(before[1] + before[2] - 30)  # o seguinte absorve
+
+
+def test_set_compartment_size_y_axis():
+    model = OrganizerModel()
+    model.y_dividers = [DividerState(0.5)]
+    model.set_compartment_size('y', 0, 20)
+    assert model.compartment_sizes('y') == pytest.approx([20, 76.8 - 1.6 - 20])
+
+
+@pytest.mark.parametrize("end", [0, 1])
+def test_set_compartment_size_range_limits_pass_validation(end):
+    model = OrganizerModel()
+    model.x_dividers = [DividerState(0.33), DividerState(0.66)]
+    model.y_dividers = [DividerState(0.5)]
+    model.set_compartment_size('x', 1, model.compartment_size_range('x', 1)[end])
+    model.to_params()  # não pode levantar ValidationError
