@@ -85,6 +85,7 @@ python -m pytest -v
   - Right-click: add a Y divider
   - Drag: move a divider
   - Hover + `Delete`: remove a divider
+  - Each compartment shows its free size in mm (width × depth), when it's big enough to fit the text
 - **3D preview** (right): updates as you design; drag to orbit, scroll to zoom
 - **Info box**: number of compartments, volume and triangle count
 - **Open / Save**: stores the design as a `.json` file and loads it back. The file uses the same format as the library parameters and Print-Platform's API. A file that is not a valid design is rejected with an error and the current design is kept
@@ -191,7 +192,7 @@ pip sees the SDK is already installed and keeps your local copy, so changes to t
 
 - `tests/test_params.py`: parameter validation (minimums, compartment sizes, corner radius, divider format and height limits, unknown fields, JSON round trip)
 - `tests/test_generator.py`: generated meshes are watertight with the right dimensions (with and without dividers and rounded corners), full-height and short dividers add the expected volume, dividers don't stick out of rounded corners, STL is binary, and the plugin is registered for Print-Platform
-- `tests/test_model.py`: the desktop model converts divider fractions to millimeters, keeps divider heights, and loads a saved design back to the same parameters (runs without PyQt)
+- `tests/test_model.py`: the desktop model converts divider fractions to millimeters, keeps divider heights, loads a saved design back to the same parameters, and computes the free size of each compartment (runs without PyQt)
 
 ## Project structure
 
@@ -232,7 +233,7 @@ The desktop app never builds geometry itself: `model.py` keeps the UI state (div
 - [ ] **Desktop editor**
   - [x] Show validation errors inline
   - [ ] Set divider height in the editor
-  - [ ] Compartment dimension display (width × depth inside each cell)
+  - [x] Compartment dimension display (width × depth inside each cell)
   - [ ] Snap to grid / equal spacing (hold Shift while dragging)
   - [ ] Direct numeric input for divider position (double-click a divider)
   - [ ] Undo / Redo (Ctrl+Z / Ctrl+Y)
